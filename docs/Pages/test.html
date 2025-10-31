@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+      
+    </style>
+</head>
+
+<body class="h-screen">
+    
+    <div class="floating-elements">
+        <div class="floaty" style="left: 5%; animation-duration: 20s; animation-delay: 0s;"></div>
+        <div class="floaty" style="left: 15%; animation-duration: 30s; animation-delay: 5s; border-bottom-width: 30px; border-left-width: 15px; border-right-width: 15px;"></div>
+        <div class="floaty" style="left: 25%; animation-duration: 18s; animation-delay: 2s; border-bottom-width: 15px; border-left-width: 7px; border-right-width: 7px;"></div>
+        <div class="floaty" style="left: 40%; animation-duration: 28s; animation-delay: 8s;"></div>
+        <div class="floaty" style="left: 55%; animation-duration: 22s; animation-delay: 12s; border-bottom-width: 25px; border-left-width: 12px; border-right-width: 12px;"></div>
+        <div class="floaty" style="left: 70%; animation-duration: 35s; animation-delay: 1s;"></div>
+        <div class="floaty" style="left: 85%; animation-duration: 24s; animation-delay: 6s; border-bottom-width: 18px; border-left-width: 9px; border-right-width: 9px;"></div>
+        <div class="floaty" style="left: 95%; animation-duration: 26s; animation-delay: 10s;"></div>
+    </div>
+
+    <div class="flex h-full">
+        <div id="server-nav" class="w-20 p-3 flex flex-col items-center gap-3 flex-shrink-0">
+            <button class="server-btn w-14 h-14 rounded-full flex items-center justify-center text-2xl active" data-view="dashboard" title="Dashboard">
+                <i data-lucide="layout-dashboard" class="w-8 h-8"></i>
+            </button>
+            <button class="server-btn w-14 h-14 rounded-full flex items-center justify-center text-2xl" data-view="chat" title="Institute Server">
+                <i data-lucide="sprout" class="w-8 h-8"></i>
+            </button>
+        </div>
+
+        <div id="main-content" class="flex-1 flex flex-col min-w-0 relative">
+            <div id="dashboard-view" class="w-full h-full overflow-y-auto">
+                <div class="p-4 md:p-8">
+                    <div class="max-w-7xl mx-auto relative z-10">
+                        <div class="pixelated-bg rounded-lg relative glass">
+                            <div class="absolute inset-0 bg-black/20 rounded-lg"></div>
+                            <div class="absolute -bottom-8 left-8">
+                                <button id="profile-pic-container" class="bg-[#39414A]/50 backdrop-blur-[10px] p-3 rounded-lg border border-white/10 shadow-[0_0_20px_rgba(160,130,255,0.5)] transition-transform hover:scale-105">
+                                    <span id="profile-pic-emoji" class="text-5xl">☘️</span>
+                                </button>
+                            </div>
+                            <div class="absolute bottom-4 left-32 text-2xl font-vt323">
+                                <span id="user-anonymous-name" class="font-bold"></span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 pt-6 mt-6">
+                            <div class="lg:col-span-1">
+                                 <div class="widget glass h-full flex items-center justify-center">
+                                    <p class="text-gray-400">Your Original Sidebar Content</p>
+                                 </div>
+                            </div>
+                            <div class="lg:col-span-3">
+                                <div class="widget glass h-full flex items-center justify-center">
+                                    <p class="text-gray-400">Your Original Main Content</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="chat-view" class="w-full h-full hidden flex">
+                <div id="channel-list-panel" class="glass">
+                    <div class="p-4 border-b border-white/10 shadow-md flex justify-between items-center">
+                        <h2 class="text-lg font-bold truncate">Institute Server</h2>
+                        <button id="toggle-channels-btn" title="Toggle Channel List" class="text-gray-400 hover:text-white">
+                            <i data-lucide="panel-left-close" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                    <div id="channel-buttons-container" class="flex-1 p-3 space-y-2 overflow-y-auto"></div>
+                    <div id="user-panel" class="p-3 flex items-center gap-3">
+                        <div id="chat-profile-pic-container" class="relative">
+                            <div id="chat-profile-pic-emoji" class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-2xl">☘️</div>
+                        </div>
+                        <span id="chat-user-anonymous-name" class="font-semibold text-sm truncate">Connecting...</span>
+                    </div>
+                </div>
+
+                <div id="chat-area" class="glass flex-1 flex flex-col min-w-0">
+                    <div id="main-chat-header" class="flex items-center justify-between p-4 border-b border-white/10 shadow-sm h-16 flex-shrink-0"></div>
+                    <div class="flex flex-1 min-h-0">
+                        <div class="flex-1 flex flex-col min-h-0">
+                            <div id="main-chat-welcome" class="flex flex-col items-center justify-center h-full text-center p-8">
+                                <i data-lucide="message-square" class="w-24 h-24 text-gray-400 opacity-50 mb-4"></i>
+                                <h2 class="text-2xl font-bold">Select a channel to begin</h2>
+                                <p class="text-gray-300 mt-2">Your conversations will appear here.</p>
+                            </div>
+                            <div id="main-chat-messages" class="flex-1 overflow-y-auto hidden"></div>
+                            <div id="main-chat-input-wrapper" class="hidden p-4 pt-0">
+                                <div id="voice-recorder-container"></div>
+                                <div id="main-chat-input-container" class="glass relative">
+                                    <div id="attachment-menu" class="glass hidden scale-90 opacity-0">
+                                        <div class="flex flex-col gap-2">
+                                            <button id="attach-image-btn" class="context-menu-item"><i data-lucide="image" class="w-4 h-4"></i> Image</button>
+                                            <button id="attach-doc-btn" class="context-menu-item"><i data-lucide="file-text" class="w-4 h-4"></i> Document</button>
+                                            <button id="record-voice-btn" class="context-menu-item"><i data-lucide="mic" class="w-4 h-4"></i> Record Voice</button>
+                                        </div>
+                                    </div>
+                                    <button id="attachment-btn" class="p-2 text-gray-400 hover:text-white">
+                                        <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                                    </button>
+                                    <input type="text" id="main-chat-input" placeholder="Type a message..." class="flex-1">
+                                    <button id="emoji-btn" class="p-2 text-gray-400 hover:text-white">
+                                        <i data-lucide="smile" class="w-5 h-5"></i>
+                                    </button>
+                                    <button id="main-chat-send-btn"><i data-lucide="send" class="w-5 h-5"></i></button>
+                                    <div id="emoji-panel" class="glass hidden scale-90 opacity-0">
+                                        <div class="flex border-b border-white/10">
+                                            <button class="emoji-tab active" data-tab="emojis">Emojis</button>
+                                            <button class="emoji-tab" data-tab="stickers">Stickers</button>
+                                        </div>
+                                        <div id="emojis-grid" class="emoji-grid flex-1"></div>
+                                        <div id="stickers-grid" class="emoji-grid flex-1 hidden"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="members-panel" class="hidden p-2">
+                             <div id="member-list-container" class="flex-1 space-y-1 overflow-y-auto"></div>
+                        </div>
+                    </div>
+                </div>
+            </div> 
+
+        </div> 
+    </div>
+
+    <div id="emote-picker-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50">
+        <div class="widget glass p-6 rounded-lg max-w-sm w-full">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-vt323">Choose a new picture</h3>
+                <button id="close-emote-modal" class="text-gray-400 hover:text-white">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div id="emote-grid" class="grid grid-cols-4 gap-4 text-4xl text-center"></div>
+        </div>
+    </div>
+    
+    <div id="user-profile-popup" class="glass">
+        <div id="user-profile-content" class="p-4"></div>
+    </div>
+
+    <div id="context-menu" class="glass"></div>
+
+    <div id="image-preview-modal" class="fixed inset-0 bg-black/70 flex-col items-center justify-center hidden z-50 p-4">
+        <img id="preview-image" src="" alt="Image preview" class="max-w-full max-h-full object-contain rounded-lg">
+        <div class="flex gap-2 mt-4 w-full max-w-lg">
+            <input type="text" id="image-caption-input" placeholder="Add a caption..." class="flex-1 bg-gray-800 text-white p-2 rounded border border-gray-600">
+            <button id="send-image-btn" class="bg-green-500 text-white px-4 py-2 rounded">Send</button>
+            <button id="cancel-image-btn" class="bg-gray-600 text-white px-4 py-2 rounded">Cancel</button>
+        </div>
+    </div>
+    <input type="file" id="image-upload-input" class="hidden" accept="image/*">
+    <input type="file" id="doc-upload-input" class="hidden">
+
+
+    <script type="module">
+        
+    </script>
+</body>
+
+</html>
+
