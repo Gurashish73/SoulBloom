@@ -1944,19 +1944,19 @@
         const YT_MUSIC_CLIENT_ID = '186638354534-sc0ecemspj32eqkqk3u67ma2fe87gfnj.apps.googleusercontent.com';
         const GOOGLE_FIT_CLIENT_ID = '691627541266-nup7p5ked390epqje1vbh4eova6d7lpc.apps.googleusercontent.com';
         const YOUTUBE_API_KEY = 'AIzaSyC4isDfYT5JO64BtH1lvBP0-etVBXhAThA';
-        const GEMINI_API_KEY = "AIzaSyBKIy8ScHv6JqVJAMuTibo7ikvBzMSfwXo";
+        const GEMINI_API_KEY = "AIzaSyCuyAFrMmIotaXpSXD2iWnJqeIU3T3dVxk";
 
         // --- END OF ACTION REQUIRED ---
 
         // --- Firebase Setup ---
         const firebaseConfig = {
-            apiKey: "AIzaSyCOveO-NFW_X5FkINfh5KMgCBBMlOej8M4",
-            authDomain: "student-dashboard-4ec02.firebaseapp.com",
-            projectId: "student-dashboard-4ec02",
-            storageBucket: "student-dashboard-4ec02.firebasestorage.app",
-            messagingSenderId: "250478137189",
-            appId: "1:250478137189:web:224352f8e017b4194edb8c",
-            measurementId: "G-K159S6DZNP"
+            apiKey: "AIzaSyBq0HjzNJxwBrRGpn3TXFdUiOK-ye5fl44",
+            authDomain: "soulbloom-5ee07.firebaseapp.com",
+            projectId: "soulbloom-5ee07",
+            storageBucket: "soulbloom-5ee07.firebasestorage.app",
+            messagingSenderId: "713116806966",
+            appId: "1:713116806966:web:2f0ca2b5a4736f5816cd97",
+            measurementId: "G-17068CTD2S"
         };
 
 
@@ -2271,7 +2271,7 @@
         }
 
         // --- Gemini API Integration ---
-        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent`;
+        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`;
 
         async function getGeminiResponse(prompt, customSystemInstruction = null) {
             const defaultSystemInstruction = "You are a helpful assistant.You will act as a companion, a close friend, always chat like a good friend and help the user take out their emotions, help them feel light and vent";
@@ -2415,9 +2415,49 @@
             }
 
             async function fetchTTS(prompt) {
+                // FIX: Use the standard model name, NOT "-tts"
                 const TTS_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${GEMINI_API_KEY}`;
+                
                 const payload = {
-                    model: "gemini-2.5-flash-preview-tts",
+                    contents: [{
+                        parts: [{ text: prompt }]
+                    }],
+                    generationConfig: {
+                        responseModalities: ["AUDIO"], // <--- This is what enables TTS
+                        speechConfig: {
+                            voiceConfig: {
+                                prebuiltVoiceConfig: {
+                                    voiceName: "Kore" // Options: "Puck", "Charon", "Kore", "Fenrir", "Aoede"
+                                }
+                            }
+                        }
+                    }
+                };
+
+                try {
+                    const response = await fetch(TTS_API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        console.error("TTS API Error:", errorData);
+                        throw new Error(`API Error: ${errorData.error?.message || response.statusText}`);
+                    }
+
+                    const result = await response.json();
+                    return result.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+                } catch (error) {
+                    console.error("Error calling TTS API:", error);
+                    return null;
+                }
+            }
+            /*async function fetchTTS(prompt) {
+                const TTS_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-tts:generateContent?key=${GEMINI_API_KEY}`;
+                const payload = {
+                    model: "gemini-2.5-flash-tts",
                     contents: [{ parts: [{ text: prompt }] }],
                     generationConfig: { responseModalities: ["AUDIO"] },
                 };
@@ -2432,7 +2472,7 @@
                     console.error("Error calling TTS API:", error);
                     return null;
                 }
-            }
+            }*/
 
             function base64ToArrayBuffer(base64) {
                 const binaryString = window.atob(base64);
