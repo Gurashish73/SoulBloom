@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoulBloom | Focus Flow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Roboto', sans-serif; background-color: #0F2923; color: #E0E0E0; overflow: hidden; user-select: none; }
+        .font-vt323 { font-family: 'VT323', monospace; }
+        .glass { background: rgba(69, 71, 74, 0.281); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        
+        /* Bubble Animation */
+        .bubble {
+            position: absolute;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+            animation: floatUp linear forwards;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(5px);
+            font-weight: bold;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        .bubble:active { transform: scale(0.9); }
+        
+        @keyframes floatUp {
+            from { transform: translateY(110vh) scale(0.8); opacity: 0; }
+            10% { opacity: 1; }
+            to { transform: translateY(-20vh) scale(1); opacity: 1; }
+        }
+
+        .pop-effect {
+            position: absolute;
+            pointer-events: none;
+            animation: popAnim 0.5s ease-out forwards;
+        }
+        @keyframes popAnim {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col relative">
+
+    <nav class="w-full glass p-4 flex justify-between items-center z-20">
+        <div class="flex items-center gap-4">
+            <a href="student_dashboard.html" class="flex items-center gap-2 text-gray-400 hover:text-white transition">
+                <i data-lucide="arrow-left" class="w-5 h-5"></i> Back
+            </a>
+            <span class="text-2xl font-vt323 text-blue-400 tracking-wider">Focus Flow</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="glass px-4 py-1 rounded-full text-sm">
+                Score: <span id="score-display" class="font-bold text-yellow-400">0</span> / 10
+            </div>
+        </div>
+    </nav>
+
+    <div id="game-container" class="flex-1 relative overflow-hidden">
+        <div id="start-screen" class="absolute inset-0 flex flex-col items-center justify-center z-30 bg-black/60 backdrop-blur-sm">
+            <div class="glass p-8 rounded-2xl text-center max-w-md">
+                <i data-lucide="brain-circuit" class="w-16 h-16 text-blue-400 mx-auto mb-4"></i>
+                <h1 class="text-3xl font-vt323 text-white mb-2">Focus Flow</h1>
+                <p class="text-gray-300 mb-6">Catch the <span class="text-green-400 font-bold">Helpful Thoughts</span> (Hope, Calm, Joy).<br>Ignore the <span class="text-red-400 font-bold">Stressors</span>.</p>
+                <button id="start-btn" class="px-8 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-bold transition-all transform hover:scale-105">
+                    Start Session
+                </button>
+            </div>
+        </div>
+
+        <div id="win-screen" class="hidden absolute inset-0 flex flex-col items-center justify-center z-30 bg-black/80 backdrop-blur-md">
+            <div class="text-center">
+                <div class="text-6xl mb-4">✨</div>
+                <h2 class="text-4xl font-vt323 text-white mb-2">Mind Cleared!</h2>
+                <p class="text-green-400 text-xl mb-6">+30 Garden XP Earned</p>
+                <div class="flex gap-4 justify-center">
+                    <button onclick="location.reload()" class="px-6 py-2 border border-white/20 rounded-full hover:bg-white/10">Play Again</button>
+                    <a href="virtual_garden.html" class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-full">Go to Garden</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBq0HjzNJxwBrRGpn3TXFdUiOK-ye5fl44",
+            authDomain: "soulbloom-5ee07.firebaseapp.com",
+            projectId: "soulbloom-5ee07",
+            storageBucket: "soulbloom-5ee07.firebasestorage.app",
+            messagingSenderId: "713116806966",
+            appId: "1:713116806966:web:2f0ca2b5a4736f5816cd97",
+            measurementId: "G-17068CTD2S"
+        };
+
+        const sanitizedAppId = 'default-app-id'; // Match your dashboard ID
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let score = 0;
+        let gameActive = false;
+        let spawnInterval;
+
+        const container = document.getElementById('game-container');
+        const scoreDisplay = document.getElementById('score-display');
+        const startScreen = document.getElementById('start-screen');
+        const winScreen = document.getElementById('win-screen');
+
+        const positiveWords = ["Hope", "Calm", "Joy", "Peace", "Growth", "Focus", "Breathe", "Love", "Kindness", "Strength"];
+        const negativeWords = ["Worry", "Doubt", "Fear", "Stress", "Panic", "Anger", "Guilt", "Shame"];
+
+        // Auth Check
+        onAuthStateChanged(auth, (user) => {
+            if (user) currentUser = user;
+            else window.location.href = 'student_dashboard.html';
+        });
+
+        // Start Game
+        document.getElementById('start-btn').addEventListener('click', () => {
+            startScreen.classList.add('hidden');
+            gameActive = true;
+            score = 0;
+            scoreDisplay.innerText = 0;
+            spawnInterval = setInterval(spawnBubble, 1200); // Bubble every 1.2s
+        });
+
+        function spawnBubble() {
+            if (!gameActive) return;
+
+            const isPositive = Math.random() > 0.4; // 60% chance of positive
+            const wordList = isPositive ? positiveWords : negativeWords;
+            const word = wordList[Math.floor(Math.random() * wordList.length)];
+
+            const bubble = document.createElement('div');
+            bubble.classList.add('bubble');
+            
+            // Styles based on type
+            if (isPositive) {
+                bubble.style.background = "rgba(74, 222, 128, 0.2)"; // Green tint
+                bubble.style.border = "1px solid rgba(74, 222, 128, 0.5)";
+                bubble.style.color = "#86efac";
+            } else {
+                bubble.style.background = "rgba(239, 68, 68, 0.15)"; // Red tint
+                bubble.style.border = "1px solid rgba(239, 68, 68, 0.4)";
+                bubble.style.color = "#fca5a5";
+                bubble.style.borderRadius = "40% 60% 70% 30% / 40% 50% 60% 50%"; // Jagged shape
+            }
+
+            bubble.innerText = word;
+            
+            // Random Position & Size
+            const size = Math.random() * 40 + 60; // 60-100px
+            bubble.style.width = `${size}px`;
+            bubble.style.height = `${size}px`;
+            bubble.style.left = `${Math.random() * (window.innerWidth - 100)}px`;
+            
+            // Animation Duration (Speed)
+            const duration = Math.random() * 4 + 4; // 4-8s
+            bubble.style.animationDuration = `${duration}s`;
+
+            // Interaction
+            bubble.addEventListener('click', (e) => {
+                e.stopPropagation();
+                handleBubbleClick(bubble, isPositive);
+            });
+
+            container.appendChild(bubble);
+
+            // Cleanup after animation
+            setTimeout(() => {
+                if (bubble.parentNode) bubble.remove();
+            }, duration * 1000);
+        }
+
+        function handleBubbleClick(bubble, isPositive) {
+            if (!gameActive) return;
+
+            // Visual Pop Effect
+            const pop = document.createElement('div');
+            pop.className = 'pop-effect';
+            pop.style.left = bubble.style.left;
+            pop.style.top = bubble.offsetTop + 'px';
+            pop.style.width = bubble.style.width;
+            pop.style.height = bubble.style.height;
+            pop.style.background = bubble.style.background;
+            pop.style.borderRadius = "50%";
+            container.appendChild(pop);
+            setTimeout(() => pop.remove(), 500);
+
+            bubble.remove();
+
+            if (isPositive) {
+                score++;
+                scoreDisplay.innerText = score;
+                // Feedback
+                const floatText = document.createElement('div');
+                floatText.innerText = "+1";
+                floatText.style.color = "#4ADE80";
+                floatText.style.position = "absolute";
+                floatText.style.left = pop.style.left;
+                floatText.style.top = pop.style.top;
+                floatText.style.fontWeight = "bold";
+                floatText.style.animation = "floatUp 1s forwards";
+                container.appendChild(floatText);
+
+                if (score >= 10) endGame();
+            } else {
+                // Negative bubble clicked
+                const containerEl = document.getElementById('game-container');
+                containerEl.style.boxShadow = "inset 0 0 50px rgba(255,0,0,0.2)";
+                setTimeout(() => containerEl.style.boxShadow = "none", 300);
+            }
+        }
+
+        async function endGame() {
+            gameActive = false;
+            clearInterval(spawnInterval);
+            
+            // Save XP to Firebase
+            if (currentUser) {
+                const docRef = doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${currentUser.uid}`);
+                try {
+                    // We add to a new field 'gameXP'
+                    await setDoc(docRef, { gameXP: increment(30) }, { merge: true });
+                    console.log("XP Saved!");
+                } catch (e) {
+                    console.error("Error saving XP:", e);
+                }
+            }
+
+            // Show Win Screen
+            setTimeout(() => {
+                winScreen.classList.remove('hidden');
+            }, 500);
+        }
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>

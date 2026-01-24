@@ -384,11 +384,19 @@
                 const countJ = journalSnap.size;
                 const countS = reportSnap.size;
 
+                // 1. Add this variable at the top with other let variables
+                let userGameXP = 0; // Add this
+
+                // 2. In loadUserProfile(), add this line inside the snapshot callback:
+                userGameXP = data.gameXP || 0; // Add this to read the new score
+
+                // 3. In syncGardenStats(), update the calculation:
                 const calculatedXP = (countA * XP_RATES.assignment) + 
-                                     (countJ * XP_RATES.journal) + 
-                                     (countS * XP_RATES.screening) + 
-                                     userWateringXP;
-                
+                                    (countJ * XP_RATES.journal) + 
+                                    (countS * XP_RATES.screening) + 
+                                    userWateringXP + 
+                                    userGameXP; // <--- ADD THIS
+                                
                 currentXP = calculatedXP;
 
                 statTasks.innerText = countA;
