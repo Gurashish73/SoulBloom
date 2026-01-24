@@ -116,7 +116,7 @@
 
             <button id="water-btn" class="mt-8 group relative px-8 py-3 rounded-full bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold shadow-lg hover:shadow-cyan-500/30 transition-all transform hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden">
                 <span class="relative z-10 flex items-center gap-2">
-                    <i data-lucide="watering-can" class="w-5 h-5 group-hover:rotate-12 transition-transform"></i>
+                    <i data-lucide="cloud-rain" class="w-5 h-5 group-hover:rotate-12 transition-transform"></i>
                     Water Plant
                 </span>
                 <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
@@ -240,6 +240,7 @@
             measurementId: "G-17068CTD2S"
         };
 
+        // FIXED: Using default-app-id to match your dashboard
         const sanitizedAppId = 'default-app-id';
 
         // --- Initialize Firebase ---
@@ -288,6 +289,7 @@
 
         let currentUser = null;
         let currentXP = 0;
+        let isSyncing = false; // Flag to prevent overlaps
 
         // --- Main Auth Listener ---
         onAuthStateChanged(auth, async (user) => {
@@ -305,8 +307,6 @@
                 setupRealtimeListeners(user.uid);
 
             } else {
-                // If accessed directly without login, redirect or show guest state
-                // window.location.href = "student_dashboard.html"; 
                 totalPointsDisplay.textContent = "Guest";
             }
         });
@@ -327,8 +327,10 @@
 
         // --- Calculate XP based on collections ---
         async function syncGardenStats(uid) {
+            if (isSyncing) return; // Prevent race conditions
+            isSyncing = true;
+
             waterBtn.disabled = true;
-            const originalBtnContent = waterBtn.innerHTML;
             waterBtn.innerHTML = '<div class="loader"></div>';
 
             try {
@@ -367,23 +369,29 @@
                 console.error("Error syncing stats:", error);
             } finally {
                 waterBtn.disabled = false;
-                waterBtn.innerHTML = originalBtnContent;
-                lucide.createIcons(); // Re-render icons if button reset
+                // Hardcoded reset string to prevent "saving" the spinner
+                waterBtn.innerHTML = `
+                    <span class="relative z-10 flex items-center gap-2">
+                        <i data-lucide="cloud-rain" class="w-5 h-5 group-hover:rotate-12 transition-transform"></i>
+                        Water Plant
+                    </span>
+                    <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                `;
+                lucide.createIcons(); 
+                isSyncing = false;
             }
         }
 
-        // --- Realtime Listeners (Optional but cool) ---
+        // --- Realtime Listeners ---
         function setupRealtimeListeners(uid) {
-            // Listen for Journal Changes
+            // Listen for changes and trigger sync
             onSnapshot(collection(db, `artifacts/${sanitizedAppId}/users/${uid}/journal`), () => syncGardenStats(uid));
-            // Listen for Assignments
             onSnapshot(collection(db, `artifacts/${sanitizedAppId}/users/${uid}/assignments`), () => syncGardenStats(uid));
         }
 
         function updateGardenUI(xp) {
             totalPointsDisplay.innerText = `${xp} XP`;
 
-            // 1. Find Current Stage
             let activeStage = STAGES[0];
             let nextStage = STAGES[1]; 
 
@@ -394,13 +402,11 @@
                 }
             }
 
-            // 2. Update Text & Icon
             stageNameEl.innerText = activeStage.name;
             stageDescEl.innerText = activeStage.desc;
             plantDisplay.innerText = activeStage.icon;
             currentLevelText.innerText = `Level ${activeStage.level}`;
 
-            // 3. Update Progress Bar
             let progressPercent = 0;
             if (nextStage.name !== "Max Level") {
                 const range = nextStage.threshold - activeStage.threshold;
@@ -416,7 +422,6 @@
             
             xpBar.style.width = `${progressPercent}%`;
 
-            // 4. Update Grid Cards Styling
             STAGES.forEach(stage => {
                 const card = document.getElementById(`stage-card-${stage.level}`);
                 if(card) {
@@ -434,37 +439,30 @@
 
         // --- Interaction: Water Button ---
         waterBtn.addEventListener('click', () => {
-            // 1. Create Drop Element
             const drop = document.createElement('div');
-            drop.innerHTML = '<i data-lucide="droplet"></i>'; // use icon or emoji
+            drop.innerHTML = '<i data-lucide="droplet"></i>'; 
             drop.innerText = "💧";
             drop.classList.add('drop-animation');
             
-            // Position randomly above plant
             const plantRect = plantDisplay.getBoundingClientRect();
-            // Center roughly
             drop.style.left = "50%"; 
             drop.style.top = "30%"; 
             
             const container = plantDisplay.parentElement;
             container.appendChild(drop);
 
-            // 2. Animate Plant
             plantDisplay.style.transform = "scale(1.2) rotate(5deg)";
             setTimeout(() => {
                 plantDisplay.style.transform = "scale(1) rotate(0deg)";
             }, 300);
 
-            // 3. Force Sync (Updates points if user just finished a task in another tab)
             if(currentUser) syncGardenStats(currentUser.uid);
 
-            // 4. Cleanup
             setTimeout(() => {
                 drop.remove();
             }, 1000);
         });
 
-        // Initialize Lucide Icons initially
         lucide.createIcons();
 
     </script>
