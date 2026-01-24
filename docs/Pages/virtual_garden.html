@@ -24,7 +24,7 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* Plant Breathing Animation (Normal) */
+        /* Plant Breathing Animation */
         .plant-container {
             transition: transform 0.5s ease-in-out;
             animation: breathe 4s infinite ease-in-out;
@@ -35,14 +35,19 @@
             50% { transform: scale(1.05) translateY(-10px); }
         }
 
-        /* Evolution Animation (Level Up!) */
-        .evolving {
-            animation: evolveAnim 1.5s ease-in-out forwards;
-        }
+        /* Evolution/Devolution Animation */
+        .evolving { animation: evolveAnim 1.5s ease-in-out forwards; }
+        .devolving { animation: devolveAnim 1.5s ease-in-out forwards; }
+
         @keyframes evolveAnim {
             0% { transform: scale(1) rotate(0deg); filter: brightness(1); }
             50% { transform: scale(0.1) rotate(180deg); filter: brightness(2) drop-shadow(0 0 50px gold); }
             100% { transform: scale(1.2) rotate(360deg); filter: brightness(1); }
+        }
+        @keyframes devolveAnim {
+            0% { transform: scale(1); filter: grayscale(0); }
+            50% { transform: scale(0.8) rotate(-10deg); filter: grayscale(1) brightness(0.5); }
+            100% { transform: scale(1) rotate(0deg); filter: grayscale(0); }
         }
 
         /* Water Drop Animation */
@@ -61,6 +66,22 @@
             100% { transform: translateY(0) scale(0.5); opacity: 0; }
         }
 
+        /* XP Pop-up Animation */
+        .xp-popup {
+            position: absolute;
+            animation: floatUp 1.5s forwards;
+            font-weight: bold;
+            color: #FACC15; /* Yellow-400 */
+            pointer-events: none;
+            font-size: 1.5rem;
+            z-index: 60;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-50px) scale(1.2); opacity: 0; }
+        }
+
         /* Progress Bar */
         .xp-bar-bg { background-color: #2E3338; }
         .xp-bar-fill { 
@@ -76,7 +97,7 @@
 
         /* Evolution Button Style */
         .evolve-btn {
-            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); /* Gold/Orange */
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
             box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
             border: 1px solid #FCD34D;
             animation: pulse-gold 2s infinite;
@@ -125,7 +146,6 @@
             
             <div class="relative w-full max-w-md aspect-square flex items-center justify-center">
                 <div class="absolute inset-0 bg-green-500/5 blur-[80px] rounded-full animate-pulse"></div>
-                
                 <div id="plant-wrapper" class="relative z-10">
                     <div id="plant-display" class="plant-container text-[150px] md:text-[200px] drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)] select-none cursor-pointer">
                         🌱
@@ -138,15 +158,19 @@
                 <p id="current-stage-desc" class="text-gray-400 max-w-md mx-auto text-lg">Your journey begins here. Complete tasks to grow.</p>
             </div>
 
-            <button id="water-btn" class="mt-8 group relative px-8 py-3 rounded-full bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold shadow-lg hover:shadow-cyan-500/30 transition-all transform hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden">
-                <span id="btn-text-content" class="relative z-10 flex items-center gap-2">
-                    <i data-lucide="cloud-rain" class="w-5 h-5 group-hover:rotate-12 transition-transform"></i>
-                    Water Plant
-                </span>
-                <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-            </button>
+            <div class="relative mt-8">
+                <button id="water-btn" class="group relative px-8 py-3 rounded-full bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold shadow-lg hover:shadow-cyan-500/30 transition-all transform hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden">
+                    <span id="btn-text-content" class="relative z-10 flex items-center gap-2">
+                        <i data-lucide="cloud-rain" class="w-5 h-5 group-hover:rotate-12 transition-transform"></i>
+                        Water Plant
+                    </span>
+                    <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                </button>
+                <div id="xp-popup-anchor" class="absolute top-0 left-1/2 -translate-x-1/2 w-full text-center"></div>
+            </div>
+            
             <p id="action-hint" class="text-xs text-gray-500 mt-3 flex items-center gap-1">
-                <i data-lucide="info" class="w-3 h-3"></i> Syncs automatically with Dashboard activity
+                <i data-lucide="info" class="w-3 h-3"></i> Syncs automatically. Daily Water: +20 XP.
             </p>
         </div>
 
@@ -204,14 +228,19 @@
                         <div class="text-[10px] text-gray-500 mt-1">+50 XP per check</div>
                     </div>
 
-                    <div class="bg-gradient-to-br from-green-900/40 to-black/40 p-4 rounded-xl border border-green-500/20">
-                        <div class="text-gray-400 text-xs uppercase font-bold tracking-wider mb-1">Total Score</div>
+                    <div class="bg-black/30 p-4 rounded-xl border border-white/5 hover:border-cyan-500/30 transition-colors group">
+                        <div class="text-gray-400 text-xs uppercase font-bold tracking-wider mb-1">Daily Care</div>
                         <div class="flex items-end justify-between">
-                            <div class="text-3xl font-bold text-white" id="stats-total-score">0</div>
-                            <i data-lucide="trophy" class="w-6 h-6 text-green-400"></i>
+                            <div class="text-3xl font-bold text-cyan-400" id="stats-watering">0</div>
+                            <i data-lucide="droplets" class="w-6 h-6 text-gray-600 group-hover:text-cyan-400 transition-colors"></i>
                         </div>
-                        <div class="text-[10px] text-green-400/70 mt-1">Keep growing!</div>
+                        <div class="text-[10px] text-gray-500 mt-1">+20 XP daily</div>
                     </div>
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-white/10 flex justify-between items-center">
+                    <span class="text-gray-400 text-xs uppercase font-bold">Total Score</span>
+                    <span class="text-3xl font-bold text-white font-vt323" id="stats-total-score">0</span>
                 </div>
             </div>
 
@@ -249,9 +278,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, getDocs, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, getDocs, collection, query, where, onSnapshot, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Firebase Configuration ---
         const firebaseConfig = {
             apiKey: "AIzaSyBq0HjzNJxwBrRGpn3TXFdUiOK-ye5fl44",
             authDomain: "soulbloom-5ee07.firebaseapp.com",
@@ -264,7 +292,6 @@
 
         const sanitizedAppId = 'default-app-id';
 
-        // --- Initialize Firebase ---
         let app, auth, db;
         try {
             app = initializeApp(firebaseConfig);
@@ -274,7 +301,6 @@
             console.error("Firebase init error:", e);
         }
 
-        // --- DOM Elements ---
         const plantDisplay = document.getElementById('plant-display');
         const stageNameEl = document.getElementById('current-stage-name');
         const stageDescEl = document.getElementById('current-stage-desc');
@@ -287,15 +313,15 @@
         const waterBtn = document.getElementById('water-btn');
         const btnTextContent = document.getElementById('btn-text-content');
         const actionHint = document.getElementById('action-hint');
+        const xpPopupAnchor = document.getElementById('xp-popup-anchor');
 
-        // Stats Elements
         const statTasks = document.getElementById('stats-tasks');
         const statJournal = document.getElementById('stats-journal');
         const statScreening = document.getElementById('stats-screening');
+        const statWatering = document.getElementById('stats-watering');
         const statTotalScore = document.getElementById('stats-total-score');
 
-        // --- Game Config ---
-        const XP_RATES = { assignment: 10, journal: 15, screening: 50 };
+        const XP_RATES = { assignment: 10, journal: 15, screening: 50, watering: 20 };
 
         const STAGES = [
             { level: 1, name: "The Sleeping Seed", icon: "🌱", threshold: 0, desc: "A dormant potential waiting for care. Complete tasks to begin." },
@@ -307,10 +333,11 @@
         let currentUser = null;
         let currentXP = 0;
         let isSyncing = false;
-        let userCurrentLevel = 1; // Fetched from DB
-        let isReadyToEvolve = false; // Flag to control button behavior
+        let userCurrentLevel = 1;
+        let isReadyToEvolve = false;
+        let userWateringXP = 0;
+        let lastWateredDate = null;
 
-        // --- Main Auth Listener ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
@@ -322,33 +349,33 @@
             }
         });
 
-        // --- Logic Functions ---
-
         async function loadUserProfile(uid) {
             try {
                 const docRef = doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${uid}`);
-                const snap = await getDoc(docRef);
-                if (snap.exists()) {
-                    const data = snap.data();
-                    userProfileDisplay.textContent = data.profilePic || '👤';
-                    // Load saved garden level or default to 1
-                    userCurrentLevel = data.gardenLevel || 1;
-                }
+                onSnapshot(docRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        userProfileDisplay.textContent = data.profilePic || '👤';
+                        userCurrentLevel = data.gardenLevel || 1;
+                        userWateringXP = data.wateringXP || 0;
+                        lastWateredDate = data.lastWateredDate || null;
+                        
+                        // Re-sync stats on profile update
+                        syncGardenStats(uid); 
+                    }
+                });
             } catch (e) {
                 console.error("Error loading profile:", e);
             }
         }
 
-        // --- Core Logic: Sync stats and calculate potential level ---
         async function syncGardenStats(uid) {
             if (isSyncing) return; 
             isSyncing = true;
 
-            // Only show loader on text, don't disable if we want to allow clicking later
             if(!isReadyToEvolve) totalPointsDisplay.innerText = "...";
 
             try {
-                // 1. Fetch Counts
                 const assignSnap = await getDocs(query(collection(db, `artifacts/${sanitizedAppId}/users/${uid}/assignments`), where("completed", "==", true)));
                 const journalSnap = await getDocs(collection(db, `artifacts/${sanitizedAppId}/users/${uid}/journal`));
                 const reportSnap = await getDocs(query(collection(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports`), where("userId", "==", uid)));
@@ -357,18 +384,45 @@
                 const countJ = journalSnap.size;
                 const countS = reportSnap.size;
 
-                // 2. Calculate XP
-                const calculatedXP = (countA * XP_RATES.assignment) + (countJ * XP_RATES.journal) + (countS * XP_RATES.screening);
+                const calculatedXP = (countA * XP_RATES.assignment) + 
+                                     (countJ * XP_RATES.journal) + 
+                                     (countS * XP_RATES.screening) + 
+                                     userWateringXP;
+                
                 currentXP = calculatedXP;
 
-                // 3. Update DOM Stats
                 statTasks.innerText = countA;
                 statJournal.innerText = countJ;
                 statScreening.innerText = countS;
+                statWatering.innerText = userWateringXP;
                 statTotalScore.innerText = calculatedXP;
                 totalPointsDisplay.innerText = `${calculatedXP} XP`;
 
-                // 4. Check for Level Up
+                // --- NEW AUTO-DOWNGRADE LOGIC ---
+                // Calculate what level the user SHOULD be at based on max potential
+                let correctLevel = 1;
+                for (let i = STAGES.length - 1; i >= 0; i--) {
+                    if (currentXP >= STAGES[i].threshold) {
+                        correctLevel = STAGES[i].level;
+                        break;
+                    }
+                }
+
+                // If user's stored level is higher than their XP allows (e.g. they deleted tasks), force downgrade
+                if (userCurrentLevel > correctLevel) {
+                    console.log(`Downgrading level from ${userCurrentLevel} to ${correctLevel}`);
+                    userCurrentLevel = correctLevel;
+                    
+                    // Save the lowered level to DB immediately
+                    const docRef = doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${uid}`);
+                    await setDoc(docRef, { gardenLevel: userCurrentLevel }, { merge: true });
+                    
+                    // Visual effect
+                    plantDisplay.classList.add('devolving');
+                    setTimeout(() => plantDisplay.classList.remove('devolving'), 1500);
+                }
+                // --- END AUTO-DOWNGRADE ---
+
                 updateGardenUI(currentXP);
 
             } catch (error) {
@@ -384,7 +438,6 @@
         }
 
         function updateGardenUI(xp) {
-            // Determine "Potential" Stage based on points
             let potentialStage = STAGES[0];
             let nextStage = STAGES[1]; 
 
@@ -395,23 +448,25 @@
                 }
             }
 
-            // Logic: Is the potential level higher than what the user has "evolved" to?
             if (potentialStage.level > userCurrentLevel) {
                 isReadyToEvolve = true;
-                setButtonState('evolve'); // Change button to "Evolve"
+                setButtonState('evolve'); 
                 actionHint.innerHTML = "✨ You have enough energy to evolve! Click button above.";
                 actionHint.classList.add("text-yellow-400", "font-bold");
                 actionHint.classList.remove("text-gray-500");
             } else {
                 isReadyToEvolve = false;
-                setButtonState('water'); // Standard "Water" button
-                actionHint.innerHTML = `<i data-lucide="info" class="w-3 h-3"></i> Syncs automatically with Dashboard activity`;
+                const today = new Date().toDateString();
+                if (lastWateredDate === today) {
+                    actionHint.innerHTML = `<i data-lucide="check" class="w-3 h-3 text-green-400"></i> Daily water collected. Come back tomorrow!`;
+                } else {
+                    actionHint.innerHTML = `<i data-lucide="droplet" class="w-3 h-3 text-blue-400"></i> Water today for +20 XP`;
+                }
+                setButtonState('water');
                 actionHint.classList.remove("text-yellow-400", "font-bold");
                 actionHint.classList.add("text-gray-500");
             }
 
-            // Display the CURRENT unlocked stage (not the potential one)
-            // We find the stage object that matches the user's saved level
             const currentDisplayStage = STAGES.find(s => s.level === userCurrentLevel) || STAGES[0];
 
             stageNameEl.innerText = currentDisplayStage.name;
@@ -419,7 +474,6 @@
             plantDisplay.innerText = currentDisplayStage.icon;
             currentLevelText.innerText = `Level ${currentDisplayStage.level}`;
 
-            // Progress Bar Logic
             let progressPercent = 0;
             const thresholdNext = STAGES.find(s => s.level === userCurrentLevel + 1)?.threshold || 9999;
             const thresholdCurrent = currentDisplayStage.threshold;
@@ -437,7 +491,6 @@
             }
             xpBar.style.width = `${progressPercent}%`;
 
-            // Grid Cards
             STAGES.forEach(stage => {
                 const card = document.getElementById(`stage-card-${stage.level}`);
                 if(card) {
@@ -452,7 +505,7 @@
         function setButtonState(state) {
             if (state === 'evolve') {
                 waterBtn.classList.remove('from-cyan-600', 'to-blue-600');
-                waterBtn.classList.add('evolve-btn'); // Gold style
+                waterBtn.classList.add('evolve-btn'); 
                 btnTextContent.innerHTML = `<i data-lucide="sparkles" class="w-5 h-5"></i> Evolve Plant!`;
             } else {
                 waterBtn.classList.add('from-cyan-600', 'to-blue-600');
@@ -462,49 +515,64 @@
             lucide.createIcons();
         }
 
-        // --- Interaction Handler ---
         waterBtn.addEventListener('click', async () => {
             if (isReadyToEvolve) {
-                // EVOLVE LOGIC
                 handleEvolution();
             } else {
-                // WATER LOGIC (Just Animation & Sync)
                 handleWatering();
             }
         });
 
         async function handleEvolution() {
-            // 1. Play Evolution Animation
             plantDisplay.classList.add('evolving');
-            
-            // 2. Increment Level locally
             userCurrentLevel++;
             
-            // 3. Save to Firebase
             if (currentUser) {
                 const docRef = doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${currentUser.uid}`);
                 await setDoc(docRef, { gardenLevel: userCurrentLevel }, { merge: true });
             }
 
-            // 4. Update UI after animation finishes
             setTimeout(() => {
                 plantDisplay.classList.remove('evolving');
-                updateGardenUI(currentXP); // Refresh UI with new level
-                
-                // Celebration Confetti (Simple Emoji Burst)
+                syncGardenStats(currentUser.uid);
                 for(let i=0; i<10; i++) createParticle('✨');
                 for(let i=0; i<10; i++) createParticle('🌿');
-
             }, 1500);
         }
 
-        function handleWatering() {
+        async function handleWatering() {
             createParticle('💧');
             plantDisplay.style.transform = "scale(1.2) rotate(5deg)";
             setTimeout(() => { plantDisplay.style.transform = "scale(1) rotate(0deg)"; }, 300);
             
-            // Trigger a sync just in case
-            if(currentUser) syncGardenStats(currentUser.uid);
+            if (currentUser) {
+                const today = new Date().toDateString();
+                
+                if (lastWateredDate !== today) {
+                    const docRef = doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${currentUser.uid}`);
+                    
+                    try {
+                        await setDoc(docRef, { 
+                            wateringXP: increment(20),
+                            lastWateredDate: today 
+                        }, { merge: true });
+
+                        showXPPopup("+20 XP!");
+                        
+                    } catch (error) {
+                        console.error("Failed to give daily bonus:", error);
+                    }
+                }
+                syncGardenStats(currentUser.uid);
+            }
+        }
+
+        function showXPPopup(text) {
+            const popup = document.createElement('div');
+            popup.className = 'xp-popup';
+            popup.innerText = text;
+            xpPopupAnchor.appendChild(popup);
+            setTimeout(() => popup.remove(), 1500);
         }
 
         function createParticle(char) {
@@ -513,7 +581,6 @@
             p.className = 'drop-animation';
             p.style.left = "50%"; 
             p.style.top = "40%";
-            // Random scatter
             p.style.transform = `translate(${Math.random()*100 - 50}px, ${Math.random()*100 - 50}px)`;
             plantDisplay.parentElement.appendChild(p);
             setTimeout(() => p.remove(), 1000);
