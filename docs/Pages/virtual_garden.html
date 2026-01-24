@@ -13,38 +13,35 @@
         .font-vt323 { font-family: 'VT323', monospace; }
         .glass { background: rgba(69, 71, 74, 0.281); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
 
-        /* Plant Breathing Animation */
+        /* Plant Animations */
         .plant-container { transition: transform 0.5s ease-in-out; animation: breathe 4s infinite ease-in-out; display: inline-block; }
         @keyframes breathe { 0%, 100% { transform: scale(1) translateY(0); } 50% { transform: scale(1.05) translateY(-10px); } }
 
-        /* Evolution/Devolution Animation */
         .evolving { animation: evolveAnim 1.5s ease-in-out forwards; }
         .devolving { animation: devolveAnim 1.5s ease-in-out forwards; }
         @keyframes evolveAnim { 0% { transform: scale(1) rotate(0deg); filter: brightness(1); } 50% { transform: scale(0.1) rotate(180deg); filter: brightness(2) drop-shadow(0 0 50px gold); } 100% { transform: scale(1.2) rotate(360deg); filter: brightness(1); } }
         @keyframes devolveAnim { 0% { transform: scale(1); filter: grayscale(0); } 50% { transform: scale(0.8) rotate(-10deg); filter: grayscale(1) brightness(0.5); } 100% { transform: scale(1) rotate(0deg); filter: grayscale(0); } }
 
-        /* Water Drop Animation */
+        /* Drops & Popups */
         .drop-animation { position: absolute; animation: dropFall 1s forwards; opacity: 0; pointer-events: none; z-index: 50; font-size: 3rem; color: #60A5FA; }
         @keyframes dropFall { 0% { transform: translateY(-80px) scale(1); opacity: 1; } 50% { opacity: 1; } 100% { transform: translateY(0) scale(0.5); opacity: 0; } }
 
-        /* XP Pop-up Animation */
-        .xp-popup { position: absolute; animation: floatUp 1.5s forwards; font-weight: bold; color: #FACC15; pointer-events: none; font-size: 1.5rem; z-index: 60; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-        @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-50px) scale(1.2); opacity: 0; } }
+        .xp-popup { position: absolute; animation: floatUp 2s forwards; font-weight: bold; pointer-events: none; font-size: 1.2rem; z-index: 60; text-shadow: 0 2px 4px rgba(0,0,0,0.8); width: 200px; text-align: center; left: 50%; margin-left: -100px; }
+        @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-60px) scale(1.1); opacity: 0; } }
 
         /* Progress Bar */
         .xp-bar-bg { background-color: #2E3338; }
         .xp-bar-fill { background: linear-gradient(90deg, #4ADE80, #22c55e); box-shadow: 0 0 15px rgba(74, 222, 128, 0.5); transition: width 1s ease-in-out; }
 
-        /* Stage Cards */
+        /* Stages */
         .stage-card { opacity: 0.4; filter: grayscale(0.8); transition: all 0.3s; border: 1px solid transparent; }
         .stage-card.unlocked { opacity: 1; filter: grayscale(0); border-color: rgba(74, 222, 128, 0.3); background: rgba(74, 222, 128, 0.05); }
         .stage-card.current { transform: scale(1.05); border-color: #4ADE80; background: rgba(74, 222, 128, 0.15); box-shadow: 0 0 20px rgba(74, 222, 128, 0.1); }
 
-        /* Evolution Button Style */
-        .evolve-btn { background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); box-shadow: 0 0 20px rgba(245, 158, 11, 0.4); border: 1px solid #FCD34D; animation: pulse-gold 2s infinite; }
+        /* Button Styles */
+        .evolve-btn { background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%) !important; box-shadow: 0 0 20px rgba(245, 158, 11, 0.4); border: 1px solid #FCD34D !important; animation: pulse-gold 2s infinite; }
         @keyframes pulse-gold { 0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); } 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); } }
 
-        /* Loader */
         .loader { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #4ADE80; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; display: inline-block; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
@@ -62,47 +59,39 @@
         <div class="flex items-center gap-4">
             <div class="flex items-center gap-2 bg-black/40 px-4 py-1.5 rounded-full border border-white/10">
                 <i data-lucide="droplets" class="w-4 h-4 text-cyan-400"></i>
-                <span id="total-points-display" class="font-mono text-cyan-200 font-bold">Loading...</span>
+                <span id="total-points-display" class="font-mono text-cyan-200 font-bold">...</span>
             </div>
             <div id="user-profile-display" class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-xl border border-white/20 shadow-lg">👤</div>
         </div>
     </nav>
 
     <div class="flex-1 flex flex-col lg:flex-row max-w-7xl mx-auto w-full p-4 md:p-8 gap-8 z-10 relative">
-        
         <div class="lg:w-1/2 flex flex-col items-center justify-center relative min-h-[400px]">
             <div class="relative w-full max-w-md aspect-square flex items-center justify-center">
                 <div class="absolute inset-0 bg-green-500/5 blur-[80px] rounded-full animate-pulse"></div>
                 <div id="plant-wrapper" class="relative z-10">
-                    <div id="plant-display" class="plant-container text-[150px] md:text-[200px] drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)] select-none cursor-pointer">
-                        🌱
-                    </div>
+                    <div id="plant-display" class="plant-container text-[150px] md:text-[200px] drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)] select-none cursor-pointer">🌱</div>
                 </div>
             </div>
-
             <div class="text-center mt-4 z-10">
-                <h1 id="current-stage-name" class="text-4xl md:text-5xl font-vt323 text-white mb-2 drop-shadow-md">The Sleeping Seed</h1>
-                <p id="current-stage-desc" class="text-gray-400 max-w-md mx-auto text-lg">Your journey begins here. Complete tasks to grow.</p>
-            </div>
-
-            <div class="relative mt-8">
-                <button id="water-btn" class="group relative px-8 py-3 rounded-full bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold shadow-lg hover:shadow-cyan-500/30 transition-all transform hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden">
-                    <span id="btn-text-content" class="relative z-10 flex items-center gap-2">
-                        <i data-lucide="cloud-rain" class="w-5 h-5 group-hover:rotate-12 transition-transform"></i>
-                        Water Plant
-                    </span>
-                    <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                </button>
-                <div id="xp-popup-anchor" class="absolute top-0 left-1/2 -translate-x-1/2 w-full text-center"></div>
+                <h1 id="current-stage-name" class="text-4xl md:text-5xl font-vt323 text-white mb-2 drop-shadow-md">Loading...</h1>
+                <p id="current-stage-desc" class="text-gray-400 max-w-md mx-auto text-lg">Connecting to your soul...</p>
             </div>
             
-            <p id="action-hint" class="text-xs text-gray-500 mt-3 flex items-center gap-1">
-                <i data-lucide="info" class="w-3 h-3"></i> Syncs automatically. Daily Water: +20 XP.
-            </p>
+            <div class="relative mt-8">
+                <button id="water-btn" class="group relative px-8 py-3 rounded-full bg-gray-800 text-white font-bold border border-blue-500/30 overflow-hidden transition-all transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span id="btn-text-content" class="relative z-10 flex items-center gap-2 group-hover:text-white transition-colors">
+                        <i data-lucide="cloud-rain" class="w-5 h-5 group-hover:rotate-12 transition-transform"></i> Water Plant
+                    </span>
+                    <div id="water-fill" class="absolute inset-0 bg-gradient-to-t from-blue-600 to-cyan-500 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out"></div>
+                </button>
+                <div id="xp-popup-anchor" class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-0"></div>
+            </div>
+            
+            <p id="action-hint" class="text-xs text-gray-500 mt-3 flex items-center gap-1"><i data-lucide="info" class="w-3 h-3"></i> Syncs automatically.</p>
         </div>
 
         <div class="lg:w-1/2 flex flex-col gap-6 justify-center">
-            
             <div class="glass p-6 rounded-2xl border-t border-white/10 relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
                 <div class="flex justify-between mb-3 font-vt323 text-2xl tracking-wide">
@@ -110,9 +99,7 @@
                     <span id="progress-text" class="text-green-400">0 / 50 XP</span>
                 </div>
                 <div class="w-full h-6 xp-bar-bg rounded-full overflow-hidden shadow-inner border border-white/5">
-                    <div id="xp-progress-bar" class="h-full xp-bar-fill w-0 relative">
-                        <div class="absolute inset-0 bg-white/10 w-full h-full animate-[shimmer_2s_infinite]"></div>
-                    </div>
+                    <div id="xp-progress-bar" class="h-full xp-bar-fill w-0 relative"><div class="absolute inset-0 bg-white/10 w-full h-full animate-[shimmer_2s_infinite]"></div></div>
                 </div>
                 <div class="mt-3 flex justify-between text-xs text-gray-400 font-mono">
                     <span>Current Level: <span id="current-level-text" class="text-white">1</span></span>
@@ -121,73 +108,23 @@
             </div>
 
             <div class="glass p-6 rounded-2xl">
-                <h3 class="text-lg font-bold mb-4 flex items-center gap-2 text-gray-200 border-b border-white/10 pb-2">
-                    <i data-lucide="sprout" class="w-5 h-5 text-green-400"></i> Nutrient Breakdown
-                </h3>
-                
+                <h3 class="text-lg font-bold mb-4 flex items-center gap-2 text-gray-200 border-b border-white/10 pb-2"><i data-lucide="sprout" class="w-5 h-5 text-green-400"></i> Nutrient Breakdown</h3>
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div class="bg-black/30 p-3 rounded-xl border border-white/5 hover:border-yellow-500/30 transition-colors">
-                        <div class="text-gray-400 text-[10px] uppercase font-bold mb-1">Assignments</div>
-                        <div class="text-2xl font-bold text-yellow-400" id="stats-tasks">0</div>
-                        <div class="text-[9px] text-gray-500">+10 XP ea</div>
-                    </div>
-
-                    <div class="bg-black/30 p-3 rounded-xl border border-white/5 hover:border-pink-500/30 transition-colors">
-                        <div class="text-gray-400 text-[10px] uppercase font-bold mb-1">Journaling</div>
-                        <div class="text-2xl font-bold text-pink-400" id="stats-journal">0</div>
-                        <div class="text-[9px] text-gray-500">+15 XP ea</div>
-                    </div>
-
-                    <div class="bg-black/30 p-3 rounded-xl border border-white/5 hover:border-blue-500/30 transition-colors">
-                        <div class="text-gray-400 text-[10px] uppercase font-bold mb-1">Screenings</div>
-                        <div class="text-2xl font-bold text-blue-400" id="stats-screening">0</div>
-                        <div class="text-[9px] text-gray-500">+50 XP ea</div>
-                    </div>
-
-                    <div class="bg-black/30 p-3 rounded-xl border border-white/5 hover:border-cyan-500/30 transition-colors">
-                        <div class="text-gray-400 text-[10px] uppercase font-bold mb-1">Daily Care</div>
-                        <div class="text-2xl font-bold text-cyan-400" id="stats-watering">0</div>
-                        <div class="text-[9px] text-gray-500">+20 XP daily</div>
-                    </div>
-
-                    <div class="bg-black/30 p-3 rounded-xl border border-white/5 hover:border-purple-500/30 transition-colors md:col-span-2">
-                        <div class="text-gray-400 text-[10px] uppercase font-bold mb-1 flex items-center gap-2">
-                            Mind Games <i data-lucide="gamepad-2" class="w-3 h-3 text-purple-400"></i>
-                        </div>
-                        <div class="text-2xl font-bold text-purple-400" id="stats-game">0 XP</div>
-                        <div class="text-[9px] text-gray-500">+30 XP per win</div>
-                    </div>
+                    <div class="bg-black/30 p-3 rounded-xl border border-white/5 hover:border-yellow-500/50 transition-colors duration-300 cursor-default"><div class="text-gray-400 text-[10px] uppercase font-bold mb-1">Assignments</div><div class="text-2xl font-bold text-yellow-400" id="stats-tasks">0</div><div class="text-[9px] text-gray-500">+10 XP ea</div></div>
+                    <div class="bg-black/30 p-3 rounded-xl border border-white/5 hover:border-pink-500/50 transition-colors duration-300 cursor-default"><div class="text-gray-400 text-[10px] uppercase font-bold mb-1">Journaling</div><div class="text-2xl font-bold text-pink-400" id="stats-journal">0</div><div class="text-[9px] text-gray-500">+15 XP ea</div></div>
+                    <div class="bg-black/30 p-3 rounded-xl border border-white/5 hover:border-blue-500/50 transition-colors duration-300 cursor-default"><div class="text-gray-400 text-[10px] uppercase font-bold mb-1">Screenings</div><div class="text-2xl font-bold text-blue-400" id="stats-screening">0</div><div class="text-[9px] text-gray-500">+50 XP ea</div></div>
+                    <div class="bg-black/30 p-3 rounded-xl border border-white/5 hover:border-cyan-500/50 transition-colors duration-300 cursor-default"><div class="text-gray-400 text-[10px] uppercase font-bold mb-1">Daily Care</div><div class="text-2xl font-bold text-cyan-400" id="stats-watering">0</div><div class="text-[9px] text-gray-500">+20 XP daily</div></div>
+                    <div class="bg-black/30 p-3 rounded-xl border border-white/5 hover:border-purple-500/50 transition-colors duration-300 cursor-default md:col-span-2"><div class="text-gray-400 text-[10px] uppercase font-bold mb-1 flex items-center gap-2">Mind Games <i data-lucide="gamepad-2" class="w-3 h-3 text-purple-400"></i></div><div class="text-2xl font-bold text-purple-400" id="stats-game">0 XP</div><div class="text-[9px] text-gray-500">+30 XP per win</div></div>
                 </div>
-                
-                <div class="mt-4 pt-4 border-t border-white/10 flex justify-between items-center">
-                    <span class="text-gray-400 text-xs uppercase font-bold">Total Score</span>
-                    <span class="text-3xl font-bold text-white font-vt323" id="stats-total-score">0</span>
-                </div>
+                <div class="mt-4 pt-4 border-t border-white/10 flex justify-between items-center"><span class="text-gray-400 text-xs uppercase font-bold">Total Score</span><span class="text-3xl font-bold text-white font-vt323" id="stats-total-score">0</span></div>
             </div>
 
             <div class="grid grid-cols-4 gap-3 mt-2">
-                <div id="stage-card-1" class="stage-card glass p-3 rounded-lg text-center flex flex-col items-center justify-center min-h-[100px]">
-                    <div class="text-3xl mb-2">🌱</div>
-                    <div class="text-xs font-bold text-white uppercase">Seed</div>
-                    <div class="text-[10px] text-gray-500 mt-1">0 XP</div>
-                </div>
-                <div id="stage-card-2" class="stage-card glass p-3 rounded-lg text-center flex flex-col items-center justify-center min-h-[100px]">
-                    <div class="text-3xl mb-2">🌿</div>
-                    <div class="text-xs font-bold text-white uppercase">Sprout</div>
-                    <div class="text-[10px] text-gray-500 mt-1">50 XP</div>
-                </div>
-                <div id="stage-card-3" class="stage-card glass p-3 rounded-lg text-center flex flex-col items-center justify-center min-h-[100px]">
-                    <div class="text-3xl mb-2">🪴</div>
-                    <div class="text-xs font-bold text-white uppercase">Sapling</div>
-                    <div class="text-[10px] text-gray-500 mt-1">150 XP</div>
-                </div>
-                <div id="stage-card-4" class="stage-card glass p-3 rounded-lg text-center flex flex-col items-center justify-center min-h-[100px]">
-                    <div class="text-3xl mb-2">🌸</div>
-                    <div class="text-xs font-bold text-white uppercase">Bloom</div>
-                    <div class="text-[10px] text-gray-500 mt-1">300 XP</div>
-                </div>
+                <div id="stage-card-1" class="stage-card glass p-3 rounded-lg text-center flex flex-col items-center justify-center min-h-[100px]"><div class="text-3xl mb-2">🌱</div><div class="text-xs font-bold text-white uppercase">Seed</div><div class="text-[10px] text-gray-500 mt-1">0 XP</div></div>
+                <div id="stage-card-2" class="stage-card glass p-3 rounded-lg text-center flex flex-col items-center justify-center min-h-[100px]"><div class="text-3xl mb-2">🌿</div><div class="text-xs font-bold text-white uppercase">Sprout</div><div class="text-[10px] text-gray-500 mt-1">50 XP</div></div>
+                <div id="stage-card-3" class="stage-card glass p-3 rounded-lg text-center flex flex-col items-center justify-center min-h-[100px]"><div class="text-3xl mb-2">🪴</div><div class="text-xs font-bold text-white uppercase">Sapling</div><div class="text-[10px] text-gray-500 mt-1">150 XP</div></div>
+                <div id="stage-card-4" class="stage-card glass p-3 rounded-lg text-center flex flex-col items-center justify-center min-h-[100px]"><div class="text-3xl mb-2">🌸</div><div class="text-xs font-bold text-white uppercase">Bloom</div><div class="text-[10px] text-gray-500 mt-1">300 XP</div></div>
             </div>
-
         </div>
     </div>
 
@@ -222,287 +159,257 @@
             console.error("Firebase init error:", e);
         }
 
-        const plantDisplay = document.getElementById('plant-display');
-        const stageNameEl = document.getElementById('current-stage-name');
-        const stageDescEl = document.getElementById('current-stage-desc');
-        const xpBar = document.getElementById('xp-progress-bar');
-        const progressText = document.getElementById('progress-text');
-        const totalPointsDisplay = document.getElementById('total-points-display');
-        const nextStageName = document.getElementById('next-stage-name');
-        const currentLevelText = document.getElementById('current-level-text');
-        const userProfileDisplay = document.getElementById('user-profile-display');
-        const waterBtn = document.getElementById('water-btn');
-        const btnTextContent = document.getElementById('btn-text-content');
-        const actionHint = document.getElementById('action-hint');
-        const xpPopupAnchor = document.getElementById('xp-popup-anchor');
+        const els = {
+            plant: document.getElementById('plant-display'),
+            name: document.getElementById('current-stage-name'),
+            desc: document.getElementById('current-stage-desc'),
+            bar: document.getElementById('xp-progress-bar'),
+            text: document.getElementById('progress-text'),
+            total: document.getElementById('total-points-display'),
+            next: document.getElementById('next-stage-name'),
+            level: document.getElementById('current-level-text'),
+            pic: document.getElementById('user-profile-display'),
+            btn: document.getElementById('water-btn'),
+            btnText: document.getElementById('btn-text-content'),
+            waterFill: document.getElementById('water-fill'),
+            hint: document.getElementById('action-hint'),
+            popup: document.getElementById('xp-popup-anchor'),
+            stats: {
+                task: document.getElementById('stats-tasks'),
+                jour: document.getElementById('stats-journal'),
+                scr: document.getElementById('stats-screening'),
+                wat: document.getElementById('stats-watering'),
+                game: document.getElementById('stats-game'),
+                all: document.getElementById('stats-total-score')
+            }
+        };
 
-        const statTasks = document.getElementById('stats-tasks');
-        const statJournal = document.getElementById('stats-journal');
-        const statScreening = document.getElementById('stats-screening');
-        const statWatering = document.getElementById('stats-watering');
-        const statGame = document.getElementById('stats-game'); // NEW DOM Element
-        const statTotalScore = document.getElementById('stats-total-score');
-
-        const XP_RATES = { assignment: 10, journal: 15, screening: 50, watering: 20 };
-
+        const XP = { A: 10, J: 15, S: 50, W: 20, G: 30 };
         const STAGES = [
-            { level: 1, name: "The Sleeping Seed", icon: "🌱", threshold: 0, desc: "A dormant potential waiting for care. Complete tasks to begin." },
-            { level: 2, name: "The Brave Sprout", icon: "🌿", threshold: 50, desc: "Breaking through the soil with new habits. Keep going!" },
-            { level: 3, name: "The Growing Sapling", icon: "🪴", threshold: 150, desc: "Standing tall and gathering strength from your efforts." },
-            { level: 4, name: "The Soul Bloom", icon: "🌸", threshold: 300, desc: "Fully blossomed, radiating peace and resilience. You've grown so much!" }
+            { level: 1, name: "The Sleeping Seed", icon: "🌱", threshold: 0, desc: "A dormant potential waiting for care." },
+            { level: 2, name: "The Brave Sprout", icon: "🌿", threshold: 50, desc: "Breaking through the soil with new habits." },
+            { level: 3, name: "The Growing Sapling", icon: "🪴", threshold: 150, desc: "Standing tall and gathering strength." },
+            { level: 4, name: "The Soul Bloom", icon: "🌸", threshold: 300, desc: "Fully blossomed, radiating peace." }
         ];
 
-        let currentUser = null;
-        let currentXP = 0;
-        let isSyncing = false;
-        let userCurrentLevel = 1;
-        let isReadyToEvolve = false;
-        let userWateringXP = 0;
-        let userGameXP = 0; // NEW Variable
-        let lastWateredDate = null;
+        let state = { user: null, xp: 0, level: 1, evolve: false, waterXP: 0, gameXP: 0, lastWater: null, syncing: false };
 
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUser = user;
-                loadUserProfile(user.uid);
-                await syncGardenStats(user.uid);
-                setupRealtimeListeners(user.uid);
+        onAuthStateChanged(auth, async (u) => {
+            if (u) {
+                state.user = u;
+                onSnapshot(doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${u.uid}`), (snap) => {
+                    if (snap.exists()) {
+                        const d = snap.data();
+                        els.pic.textContent = d.profilePic || '👤';
+                        state.level = d.gardenLevel || 1;
+                        state.waterXP = d.wateringXP || 0;
+                        state.gameXP = d.gameXP || 0;
+                        state.lastWater = d.lastWateredDate || null;
+                        calculateAndRender();
+                    }
+                });
+                onSnapshot(collection(db, `artifacts/${sanitizedAppId}/users/${u.uid}/journal`), calculateAndRender);
+                onSnapshot(collection(db, `artifacts/${sanitizedAppId}/users/${u.uid}/assignments`), calculateAndRender);
             } else {
-                totalPointsDisplay.textContent = "Guest";
+                els.total.textContent = "Guest";
             }
         });
 
-        async function loadUserProfile(uid) {
-            try {
-                const docRef = doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${uid}`);
-                onSnapshot(docRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        const data = docSnap.data();
-                        userProfileDisplay.textContent = data.profilePic || '👤';
-                        userCurrentLevel = data.gardenLevel || 1;
-                        userWateringXP = data.wateringXP || 0;
-                        userGameXP = data.gameXP || 0; // NEW: Read Game XP
-                        lastWateredDate = data.lastWateredDate || null;
-                        
-                        syncGardenStats(uid); 
-                    }
-                });
-            } catch (e) {
-                console.error("Error loading profile:", e);
-            }
-        }
-
-        async function syncGardenStats(uid) {
-            if (isSyncing) return; 
-            isSyncing = true;
-
-            if(!isReadyToEvolve) totalPointsDisplay.innerText = "...";
+        async function calculateAndRender() {
+            if (!state.user || state.syncing) return;
+            state.syncing = true;
+            if (!state.evolve) els.total.innerText = "...";
 
             try {
-                const assignSnap = await getDocs(query(collection(db, `artifacts/${sanitizedAppId}/users/${uid}/assignments`), where("completed", "==", true)));
-                const journalSnap = await getDocs(collection(db, `artifacts/${sanitizedAppId}/users/${uid}/journal`));
-                const reportSnap = await getDocs(query(collection(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports`), where("userId", "==", uid)));
+                let countA = 0, countJ = 0, countS = 0;
 
-                const countA = assignSnap.size;
-                const countJ = journalSnap.size;
-                const countS = reportSnap.size;
+                try {
+                    const aSnap = await getDocs(query(collection(db, `artifacts/${sanitizedAppId}/users/${state.user.uid}/assignments`), where("completed", "==", true)));
+                    countA = aSnap.size;
+                } catch(e) { console.warn("Task read error:", e); }
 
-                // NEW: Added userGameXP to the sum
-                const calculatedXP = (countA * XP_RATES.assignment) + 
-                                     (countJ * XP_RATES.journal) + 
-                                     (countS * XP_RATES.screening) + 
-                                     userWateringXP + 
-                                     userGameXP;
-                
-                currentXP = calculatedXP;
+                try {
+                    const jSnap = await getDocs(collection(db, `artifacts/${sanitizedAppId}/users/${state.user.uid}/journal`));
+                    countJ = jSnap.size;
+                } catch(e) { console.warn("Journal read error:", e); }
 
-                statTasks.innerText = countA;
-                statJournal.innerText = countJ;
-                statScreening.innerText = countS;
-                statWatering.innerText = userWateringXP;
-                statGame.innerText = `${userGameXP} XP`; // Update Game UI
-                statTotalScore.innerText = calculatedXP;
-                totalPointsDisplay.innerText = `${calculatedXP} XP`;
+                try {
+                    const sSnap = await getDocs(query(collection(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports`), where("userId", "==", state.user.uid)));
+                    countS = sSnap.size;
+                } catch(e) { console.warn("Screening read error:", e); }
 
-                // Auto-Downgrade Logic
-                let correctLevel = 1;
+                state.xp = (countA * XP.A) + (countJ * XP.J) + (countS * XP.S) + state.waterXP + state.gameXP;
+
+                els.stats.task.innerText = countA;
+                els.stats.jour.innerText = countJ;
+                els.stats.scr.innerText = countS;
+                els.stats.wat.innerText = state.waterXP;
+                els.stats.game.innerText = state.gameXP + " XP";
+                els.stats.all.innerText = state.xp;
+                els.total.innerText = `${state.xp} XP`;
+
+                let trueLevel = 1;
                 for (let i = STAGES.length - 1; i >= 0; i--) {
-                    if (currentXP >= STAGES[i].threshold) {
-                        correctLevel = STAGES[i].level;
-                        break;
-                    }
+                    if (state.xp >= STAGES[i].threshold) { trueLevel = STAGES[i].level; break; }
+                }
+                if (state.level > trueLevel) {
+                    state.level = trueLevel;
+                    await setDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${state.user.uid}`), { gardenLevel: trueLevel }, { merge: true });
+                    els.plant.classList.add('devolving');
+                    setTimeout(() => els.plant.classList.remove('devolving'), 1500);
                 }
 
-                if (userCurrentLevel > correctLevel) {
-                    console.log(`Downgrading level from ${userCurrentLevel} to ${correctLevel}`);
-                    userCurrentLevel = correctLevel;
-                    const docRef = doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${uid}`);
-                    await setDoc(docRef, { gardenLevel: userCurrentLevel }, { merge: true });
-                    plantDisplay.classList.add('devolving');
-                    setTimeout(() => plantDisplay.classList.remove('devolving'), 1500);
-                }
-
-                updateGardenUI(currentXP);
+                renderUI();
 
             } catch (error) {
-                console.error("Error syncing stats:", error);
+                console.error("Sync Error:", error);
             } finally {
-                isSyncing = false;
+                state.syncing = false;
             }
         }
 
-        function setupRealtimeListeners(uid) {
-            onSnapshot(collection(db, `artifacts/${sanitizedAppId}/users/${uid}/journal`), () => syncGardenStats(uid));
-            onSnapshot(collection(db, `artifacts/${sanitizedAppId}/users/${uid}/assignments`), () => syncGardenStats(uid));
-        }
-
-        function updateGardenUI(xp) {
+        function renderUI() {
             let potentialStage = STAGES[0];
-            let nextStage = STAGES[1]; 
-
             for (let i = 0; i < STAGES.length; i++) {
-                if (xp >= STAGES[i].threshold) {
-                    potentialStage = STAGES[i];
-                    nextStage = STAGES[i + 1] || { name: "Max Level", threshold: xp }; 
-                }
+                if (state.xp >= STAGES[i].threshold) potentialStage = STAGES[i];
             }
 
-            if (potentialStage.level > userCurrentLevel) {
-                isReadyToEvolve = true;
-                setButtonState('evolve'); 
-                actionHint.innerHTML = "✨ You have enough energy to evolve! Click button above.";
-                actionHint.classList.add("text-yellow-400", "font-bold");
-                actionHint.classList.remove("text-gray-500");
+            if (potentialStage.level > state.level) {
+                state.evolve = true;
+                setBtn('evolve');
+                els.hint.innerHTML = `<span class="text-yellow-400 font-bold">✨ Ready to Evolve! Click button.</span>`;
             } else {
-                isReadyToEvolve = false;
+                state.evolve = false;
                 const today = new Date().toDateString();
-                if (lastWateredDate === today) {
-                    actionHint.innerHTML = `<i data-lucide="check" class="w-3 h-3 text-green-400"></i> Daily water collected. Come back tomorrow!`;
+                if (state.lastWater === today) {
+                    setBtn('done');
+                    els.hint.innerHTML = `<span class="text-green-400"><i data-lucide="check" class="inline w-3"></i> Daily water collected. Come back tomorrow!</span>`;
                 } else {
-                    actionHint.innerHTML = `<i data-lucide="droplet" class="w-3 h-3 text-blue-400"></i> Water today for +20 XP`;
+                    setBtn('water');
+                    els.hint.innerHTML = `<span class="text-blue-400"><i data-lucide="droplet" class="inline w-3"></i> Water today for +20 XP</span>`;
                 }
-                setButtonState('water');
-                actionHint.classList.remove("text-yellow-400", "font-bold");
-                actionHint.classList.add("text-gray-500");
             }
 
-            const currentDisplayStage = STAGES.find(s => s.level === userCurrentLevel) || STAGES[0];
+            const currentStage = STAGES.find(s => s.level === state.level) || STAGES[0];
+            els.name.innerText = currentStage.name;
+            els.desc.innerText = currentStage.desc;
+            els.plant.innerText = currentStage.icon;
+            els.level.innerText = `Level ${currentStage.level}`;
 
-            stageNameEl.innerText = currentDisplayStage.name;
-            stageDescEl.innerText = currentDisplayStage.desc;
-            plantDisplay.innerText = currentDisplayStage.icon;
-            currentLevelText.innerText = `Level ${currentDisplayStage.level}`;
-
-            let progressPercent = 0;
-            const thresholdNext = STAGES.find(s => s.level === userCurrentLevel + 1)?.threshold || 9999;
-            const thresholdCurrent = currentDisplayStage.threshold;
-            
-            if (userCurrentLevel < 4) {
-                const range = thresholdNext - thresholdCurrent;
-                const current = xp - thresholdCurrent;
-                progressPercent = Math.min((current / range) * 100, 100);
-                progressText.innerText = `${xp} / ${thresholdNext} XP`;
-                nextStageName.innerText = STAGES.find(s => s.level === userCurrentLevel + 1).name;
+            const nextStageObj = STAGES.find(s => s.level === state.level + 1);
+            let pct = 0;
+            if (nextStageObj) {
+                const range = nextStageObj.threshold - currentStage.threshold;
+                const current = state.xp - currentStage.threshold;
+                pct = Math.min((current / range) * 100, 100);
+                els.text.innerText = `${state.xp} / ${nextStageObj.threshold} XP`;
+                els.next.innerText = nextStageObj.name;
             } else {
-                progressPercent = 100;
-                progressText.innerText = "Max Level Reached!";
-                nextStageName.innerText = "Complete";
+                pct = 100;
+                els.text.innerText = "Max Level!";
+                els.next.innerText = "Nirvana";
             }
-            xpBar.style.width = `${progressPercent}%`;
+            els.bar.style.width = `${pct}%`;
 
-            STAGES.forEach(stage => {
-                const card = document.getElementById(`stage-card-${stage.level}`);
-                if(card) {
-                    card.className = "stage-card glass p-3 rounded-lg text-center flex flex-col items-center justify-center min-h-[100px]"; 
-                    if (stage.level <= userCurrentLevel) card.classList.add('unlocked');
-                    if (stage.level === userCurrentLevel) card.classList.add('current');
+            STAGES.forEach(s => {
+                const c = document.getElementById(`stage-card-${s.level}`);
+                if(c) {
+                    c.className = "stage-card glass p-3 rounded-lg text-center flex flex-col items-center justify-center min-h-[100px]";
+                    if (s.level <= state.level) c.classList.add('unlocked');
+                    if (s.level === state.level) c.classList.add('current');
                 }
             });
             lucide.createIcons();
         }
 
-        function setButtonState(state) {
-            if (state === 'evolve') {
-                waterBtn.classList.remove('from-cyan-600', 'to-blue-600');
-                waterBtn.classList.add('evolve-btn'); 
-                btnTextContent.innerHTML = `<i data-lucide="sparkles" class="w-5 h-5"></i> Evolve Plant!`;
+        function setBtn(mode) {
+            // FIXED: Removed hover:-translate-y-1 when in 'done' mode to prevent confusion
+            els.btn.className = "group relative px-8 py-3 rounded-full bg-gray-800 text-white font-bold border border-blue-500/30 overflow-hidden transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed";
+            
+            if (mode === 'evolve') {
+                els.btn.classList.add('evolve-btn', 'text-white', 'hover:-translate-y-1');
+                els.btn.classList.remove('bg-gray-800', 'border-blue-500/30', 'bg-gray-700', 'border-gray-600', 'text-gray-400');
+                els.waterFill.classList.add('hidden'); 
+                els.btn.disabled = false;
+                els.btnText.innerHTML = `<i data-lucide="sparkles" class="w-5 h-5"></i> Evolve Plant!`;
+            
+            } else if (mode === 'done') {
+                // FIXED: Explicitly set cursor-pointer so user knows to click for info
+                els.btn.classList.add('bg-gray-700', 'text-gray-400', 'border-gray-600', 'cursor-pointer'); 
+                els.btn.classList.remove('evolve-btn', 'bg-gradient-to-r', 'from-cyan-600', 'to-blue-600', 'hover:-translate-y-1', 'bg-gray-800', 'border-blue-500/30');
+                els.waterFill.classList.add('hidden');
+                
+                // FIXED: Do NOT disable the button, so the click listener can fire the popup
+                els.btn.disabled = false; 
+                els.btnText.innerHTML = `<i data-lucide="check" class="w-5 h-5"></i> Watered Today`;
+            
             } else {
-                waterBtn.classList.add('from-cyan-600', 'to-blue-600');
-                waterBtn.classList.remove('evolve-btn');
-                btnTextContent.innerHTML = `<i data-lucide="cloud-rain" class="w-5 h-5 group-hover:rotate-12 transition-transform"></i> Water Plant`;
+                // Normal Water Mode (Liquid Effect Active)
+                els.btn.classList.add('bg-gray-800', 'text-white', 'border-blue-500/30', 'hover:-translate-y-1');
+                els.btn.classList.remove('evolve-btn', 'bg-gray-700', 'text-gray-400', 'border-gray-600', 'cursor-pointer');
+                els.waterFill.classList.remove('hidden'); 
+                els.btn.disabled = false;
+                els.btnText.innerHTML = `<i data-lucide="cloud-rain" class="w-5 h-5 group-hover:rotate-12 transition-transform"></i> Water Plant`;
             }
             lucide.createIcons();
         }
 
-        waterBtn.addEventListener('click', async () => {
-            if (isReadyToEvolve) {
-                handleEvolution();
+        els.btn.addEventListener('click', async () => {
+            if (state.evolve) {
+                // Evolve Logic
+                els.plant.classList.add('evolving');
+                state.level++;
+                await setDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${state.user.uid}`), { gardenLevel: state.level }, { merge: true });
+                setTimeout(() => {
+                    els.plant.classList.remove('evolving');
+                    calculateAndRender();
+                    showPopup("Level Up!", "#FACC15");
+                }, 1500);
             } else {
-                handleWatering();
+                // Water Logic
+                const today = new Date().toDateString();
+                
+                // Check if ALREADY watered
+                if (state.lastWater === today) {
+                    showPopup("Come back tomorrow!", "#60A5FA"); // Blue Info Popup
+                    return; // Stop here, don't re-animate or write to DB
+                }
+
+                // If NOT watered yet, proceed
+                const drop = document.createElement('div');
+                drop.innerHTML = '💧'; drop.className = 'drop-animation';
+                drop.style.left = "50%"; drop.style.top = "30%";
+                els.plant.parentElement.appendChild(drop);
+                els.plant.style.transform = "scale(1.2) rotate(5deg)";
+                setTimeout(() => { els.plant.style.transform = "scale(1) rotate(0deg)"; drop.remove(); }, 1000);
+
+                try {
+                    await setDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${state.user.uid}`), { 
+                        wateringXP: increment(20),
+                        lastWateredDate: today 
+                    }, { merge: true });
+
+                    state.lastWater = today; 
+                    state.waterXP += 20; 
+                    renderUI(); 
+                    showPopup("+20 XP!", "#4ADE80");
+                } catch (e) {
+                    console.error("Watering Error:", e);
+                    showPopup("Error saving XP", "#EF4444");
+                }
             }
         });
 
-        async function handleEvolution() {
-            plantDisplay.classList.add('evolving');
-            userCurrentLevel++;
-            
-            if (currentUser) {
-                const docRef = doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${currentUser.uid}`);
-                await setDoc(docRef, { gardenLevel: userCurrentLevel }, { merge: true });
-            }
-
-            setTimeout(() => {
-                plantDisplay.classList.remove('evolving');
-                syncGardenStats(currentUser.uid);
-                for(let i=0; i<10; i++) createParticle('✨');
-                for(let i=0; i<10; i++) createParticle('🌿');
-            }, 1500);
-        }
-
-        async function handleWatering() {
-            createParticle('💧');
-            plantDisplay.style.transform = "scale(1.2) rotate(5deg)";
-            setTimeout(() => { plantDisplay.style.transform = "scale(1) rotate(0deg)"; }, 300);
-            
-            if (currentUser) {
-                const today = new Date().toDateString();
-                if (lastWateredDate !== today) {
-                    const docRef = doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${currentUser.uid}`);
-                    try {
-                        await setDoc(docRef, { 
-                            wateringXP: increment(20),
-                            lastWateredDate: today 
-                        }, { merge: true });
-                        showXPPopup("+20 XP!");
-                    } catch (error) {
-                        console.error("Failed to give daily bonus:", error);
-                    }
-                }
-                syncGardenStats(currentUser.uid);
-            }
-        }
-
-        function showXPPopup(text) {
-            const popup = document.createElement('div');
-            popup.className = 'xp-popup';
-            popup.innerText = text;
-            xpPopupAnchor.appendChild(popup);
-            setTimeout(() => popup.remove(), 1500);
-        }
-
-        function createParticle(char) {
+        function showPopup(text, color) {
             const p = document.createElement('div');
-            p.innerText = char;
-            p.className = 'drop-animation';
-            p.style.left = "50%"; 
-            p.style.top = "40%";
-            p.style.transform = `translate(${Math.random()*100 - 50}px, ${Math.random()*100 - 50}px)`;
-            plantDisplay.parentElement.appendChild(p);
-            setTimeout(() => p.remove(), 1000);
+            p.className = 'xp-popup';
+            p.innerText = text;
+            p.style.color = color;
+            els.popup.appendChild(p);
+            setTimeout(() => p.remove(), 2000);
         }
 
         lucide.createIcons();
-
     </script>
 </body>
 </html>
