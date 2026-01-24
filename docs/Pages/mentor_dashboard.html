@@ -3,280 +3,375 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mentor Dashboard - Soul Bloom</title>
+    <title>Soul Bloom | Mentor Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #134e25;
-        }
-        .dark body {
-            background-color: #0c1a1e;
-        }
-        .font-playfair {
-            font-family: 'Playfair Display', serif;
-        }
-        /* Custom card styling for a consistent look */
-        .dashboard-card {
-            background-color: rgba(17, 24, 39, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
-        /* Animated Background Styles */
-        #garden-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            overflow: hidden;
-        }
-        .leaf {
-            position: absolute;
-            width: 40px;
-            height: 40px;
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22L6.66 19.7C7.14 18.45 7.93 17.37 8.95 16.54C10 15.64 11.22 15 12.5 15H17V12H12.5C11.54 12 10.64 11.73 9.84 11.23C9.04 10.73 8.36 10.05 7.85 9.24C7.05 7.94 6.75 6.45 7 5C7.25 3.55 8.06 2.22 9.24 1.28L10.47 2.5L9.5 3.47C9.06 3.91 8.72 4.45 8.5 5C8.25 5.55 8.12 6.16 8.12 6.79C8.12 7.41 8.25 8.03 8.5 8.5C8.72 9.05 9.06 9.59 9.5 10.03L10.47 11L17 11V8Z" fill="%2322c55e"/></svg>');
-            background-size: contain;
-            animation: float 25s infinite linear;
-            opacity: 0;
-        }
-        @keyframes float {
-            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
-            10% { opacity: 0.7; }
-            90% { opacity: 0.7; }
-            100% { transform: translateY(-10vh) rotate(720deg); opacity: 0; }
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #0c1a1e; color: #e2e8f0; }
+        .font-playfair { font-family: 'Playfair Display', serif; }
+        .glass { background: rgba(17, 24, 39, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        
+        /* Floating Leaves Animation */
+        #garden-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
+        .leaf { position: absolute; width: 30px; height: 30px; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%2322c55e" viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22L6.66 19.7C7.14 18.45 7.93 17.37 8.95 16.54C10 15.64 11.22 15 12.5 15H17V12H12.5C11.54 12 10.64 11.73 9.84 11.23C9.04 10.73 8.36 10.05 7.85 9.24C7.05 7.94 6.75 6.45 7 5C7.25 3.55 8.06 2.22 9.24 1.28L10.47 2.5L9.5 3.47C9.06 3.91 8.72 4.45 8.5 5C8.25 5.55 8.12 6.16 8.12 6.79C8.12 7.41 8.25 8.03 8.5 8.5C8.72 9.05 9.06 9.59 9.5 10.03L10.47 11L17 11V8Z"/></svg>'); background-size: contain; opacity: 0.1; animation: float 20s infinite linear; }
+        @keyframes float { 0% { transform: translateY(100vh) rotate(0deg); } 100% { transform: translateY(-20vh) rotate(360deg); } }
     </style>
 </head>
-<body class="dark text-gray-200">
-    
+<body class="min-h-screen flex flex-col">
+
     <div id="garden-bg"></div>
-    
-    <header class="sticky top-0 z-50 w-full bg-gray-900/50 backdrop-blur-lg border-b border-white/10">
+
+    <header class="sticky top-0 z-50 w-full glass border-b border-white/10">
         <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <a href="../index.html" class="text-3xl font-bold font-playfair text-green-400">
-                Soul Bloom <span class="text-xl text-gray-300 font-sans font-medium">| Mentor Dashboard</span>
-            </a>
+            <div class="flex items-center gap-3">
+                <i data-lucide="sprout" class="w-8 h-8 text-green-400"></i>
+                <span class="text-2xl font-bold font-playfair text-white">Soul Bloom <span class="text-base font-sans font-normal text-gray-400 ml-2">| Mentor Console</span></span>
+            </div>
             <div class="flex items-center gap-4">
-                 <a href="admin_dashboard.html" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-full transition-transform transform hover:scale-105 flex items-center gap-2">
-                     <i data-lucide="shield-alert" class="w-5 h-5"></i>
-                     <span>Review Flags</span>
-                 </a>
-                 <a href="mentor_login.html" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-full transition-transform transform hover:scale-105">
-                     Logout
-                 </a>
+                <div class="flex items-center gap-2 text-sm text-green-400 bg-green-900/30 px-3 py-1 rounded-full border border-green-500/30">
+                    <span class="relative flex h-2 w-2">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </span>
+                    Live System
+                </div>
+                <button onclick="logout()" class="text-gray-400 hover:text-white transition"><i data-lucide="log-out" class="w-5 h-5"></i></button>
             </div>
         </div>
     </header>
 
-    <main class="container mx-auto p-6 lg:p-8 relative z-10">
-        <h1 class="text-3xl font-bold text-white mb-6">Welcome, Dr. Evans</h1>
+    <main class="container mx-auto p-6 flex-1">
+        
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-white mb-2">Campus Wellness Overview</h1>
+            <p class="text-gray-400">Real-time insights from student screenings and check-ins.</p>
+        </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="dashboard-card rounded-2xl p-6 flex flex-col justify-between">
-                <h3 class="text-lg font-semibold text-gray-300">Total Students</h3>
-                <p class="text-5xl font-bold text-green-400">1,204</p>
+            <div class="glass rounded-xl p-6 border-l-4 border-blue-500">
+                <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider">Total Reports</h3>
+                <p class="text-4xl font-bold text-white mt-2" id="stat-reports">Loading...</p>
+                <div class="text-xs text-blue-400 mt-2">All-time screenings</div>
             </div>
-            <div class="dashboard-card rounded-2xl p-6 flex flex-col justify-between">
-                <h3 class="text-lg font-semibold text-gray-300">Appointments This Week</h3>
-                <p class="text-5xl font-bold text-blue-400">28</p>
+            
+            <div class="glass rounded-xl p-6 border-l-4 border-yellow-500">
+                <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider">Avg Anxiety Score</h3>
+                <p class="text-4xl font-bold text-white mt-2" id="stat-anxiety">...</p>
+                <div class="text-xs text-yellow-400 mt-2">Based on GAD-7</div>
             </div>
-            <div class="dashboard-card rounded-2xl p-6 flex flex-col justify-between">
-                <h3 class="text-lg font-semibold text-gray-300">Average Mood Score</h3>
-                <p class="text-5xl font-bold text-yellow-400">7.2 <span class="text-2xl text-gray-400">/ 10</span></p>
+
+            <div class="glass rounded-xl p-6 border-l-4 border-green-500">
+                <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider">Avg Mood Score</h3>
+                <p class="text-4xl font-bold text-white mt-2" id="stat-mood">...</p>
+                <div class="text-xs text-green-400 mt-2">Inverse PHQ-9 metric</div>
             </div>
-            <div class="dashboard-card rounded-2xl p-6 flex flex-col justify-between">
-                <h3 class="text-lg font-semibold text-gray-300">Alerts</h3>
-                <p class="text-5xl font-bold text-red-500">4</p>
+
+            <div class="glass rounded-xl p-6 border-l-4 border-red-500">
+                <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider">Active Alerts</h3>
+                <p class="text-4xl font-bold text-white mt-2" id="stat-alerts">...</p>
+                <div class="text-xs text-red-400 mt-2" id="alert-subtext">Requires attention</div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-2 dashboard-card rounded-2xl p-6">
-                <h3 class="text-xl font-bold mb-4">Overall Student Stress Level (Last 6 Months)</h3>
-                <canvas id="studentStatusLineChart"></canvas>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            
+            <div class="lg:col-span-2 glass rounded-xl p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-white">Student Mental Health Distribution</h3>
+                    <select class="bg-black/30 border border-white/10 rounded px-3 py-1 text-sm text-gray-300">
+                        <option>Last 30 Days</option>
+                        <option>All Time</option>
+                    </select>
+                </div>
+                <div class="h-64">
+                    <canvas id="wellnessChart"></canvas>
+                </div>
             </div>
-            <div class="dashboard-card rounded-2xl p-6">
-                <h3 class="text-xl font-bold mb-4">Current Student Status</h3>
-                <canvas id="studentStatusPieChart" class="max-h-80 mx-auto"></canvas>
+
+            <div class="glass rounded-xl p-6 flex flex-col gap-4">
+                <h3 class="text-xl font-bold text-white mb-2">Quick Actions</h3>
+                
+                <div class="bg-black/20 p-4 rounded-lg border border-white/5">
+                    <h4 class="text-sm font-bold text-blue-300 mb-2 flex items-center gap-2">
+                        <i data-lucide="calendar-plus" class="w-4 h-4"></i> Open Appointment Slot
+                    </h4>
+                    <div class="flex gap-2">
+                        <input type="datetime-local" id="appt-date" class="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-sm text-white">
+                        <button onclick="addAppointmentSlot()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm font-bold">+</button>
+                    </div>
+                    <p id="appt-msg" class="text-xs text-green-400 mt-1 hidden">Slot Added!</p>
+                </div>
+
+                <div class="bg-black/20 p-4 rounded-lg border border-white/5">
+                    <h4 class="text-sm font-bold text-purple-300 mb-2 flex items-center gap-2">
+                        <i data-lucide="book-plus" class="w-4 h-4"></i> Add Resource Link
+                    </h4>
+                    <input type="text" id="res-title" placeholder="Resource Title" class="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-sm text-white mb-2">
+                    <div class="flex gap-2">
+                        <input type="text" id="res-url" placeholder="URL" class="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-sm text-white">
+                        <button onclick="addResource()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm font-bold">+</button>
+                    </div>
+                    <p id="res-msg" class="text-xs text-green-400 mt-1 hidden">Resource Added!</p>
+                </div>
             </div>
         </div>
-        
-        <div class="mt-8 dashboard-card rounded-2xl p-6">
-            <h3 class="text-xl font-bold mb-4">Students Needing Attention</h3>
+
+        <div class="glass rounded-xl p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold text-red-400 flex items-center gap-2">
+                    <i data-lucide="shield-alert" class="w-5 h-5"></i> Flagged Content Review
+                </h3>
+                <span class="text-xs bg-red-900/30 text-red-300 px-2 py-1 rounded border border-red-500/30">Priority High</span>
+            </div>
+            
             <div class="overflow-x-auto">
-                <table class="min-w-full text-left">
-                    <thead class="border-b border-gray-600">
+                <table class="w-full text-left">
+                    <thead class="text-xs text-gray-400 uppercase bg-black/20 border-b border-white/10">
                         <tr>
-                            <th class="py-3 px-4">Student ID</th>
-                            
-                            <th class="py-3 px-4">Last Check-in</th>
-                            <th class="py-3 px-4">Status</th>
-                            <th class="py-3 px-4">Actions</th>
+                            <th class="px-4 py-3">Timestamp</th>
+                            <th class="px-4 py-3">User ID</th>
+                            <th class="px-4 py-3">Trigger Content</th>
+                            <th class="px-4 py-3">Risk Level</th>
+                            <th class="px-4 py-3">Action</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr class="border-b border-gray-700 hover:bg-white/5">
-                            <td class="py-3 px-4">#84021</td>
-                            
-                            <td class="py-3 px-4">2 days ago</td>
-                            <td class="py-3 px-4"><span class="px-3 py-1 text-xs font-semibold rounded-full bg-red-500/30 text-red-300">In Crisis</span></td>
-                            <td class="py-3 px-4"><a href="student_profile.html?id=84021" class="text-sm font-bold text-green-400 hover:underline">View Profile</a></td>
-                        </tr>
-                        <tr class="border-b border-gray-700 hover:bg-white/5">
-                            <td class="py-3 px-4">#79345</td>
-                            
-                            <td class="py-3 px-4">4 days ago</td>
-                            <td class="py-3 px-4"><span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-500/30 text-yellow-300">Struggling</span></td>
-                             <td class="py-3 px-4"><a href="student_profile.html?id=79345" class="text-sm font-bold text-green-400 hover:underline">View Profile</a></td>
-                        </tr>
-                        <tr class="border-b border-gray-700 hover:bg-white/5">
-                            <td class="py-3 px-4">#88109</td>
-                            
-                            <td class="py-3 px-4">1 day ago</td>
-                            <td class="py-3 px-4"><span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-500/30 text-yellow-300">Struggling</span></td>
-                             <td class="py-3 px-4"><a href="student_profile.html?id=88109" class="text-sm font-bold text-green-400 hover:underline">View Profile</a></td>
-                        </tr>
-                         <tr class="hover:bg-white/5">
-                            <td class="py-3 px-4">#81233</td>
-                            
-                            <td class="py-3 px-4">5 days ago</td>
-                            <td class="py-3 px-4"><span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-500/30 text-yellow-300">Struggling</span></td>
-                             <td class="py-3 px-4"><a href="student_profile.html?id=81233" class="text-sm font-bold text-green-400 hover:underline">View Profile</a></td>
+                    <tbody id="flagged-table-body" class="text-sm text-gray-300 divide-y divide-white/5">
+                        <tr>
+                            <td colspan="5" class="px-4 py-8 text-center text-gray-500">Loading flagged users...</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
-    </main>
-    
-    <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        lucide.createIcons();
-        
-        const gardenBg = document.getElementById('garden-bg');
-        for (let i = 0; i < 20; i++) {
-            const leaf = document.createElement('div');
-            leaf.className = 'leaf';
-            leaf.style.left = `${Math.random() * 100}vw`;
-            leaf.style.animationDuration = `${15 + Math.random() * 20}s`;
-            leaf.style.animationDelay = `${Math.random() * 10}s`;
-            leaf.style.transform = `scale(${0.5 + Math.random() * 0.8})`;
-            leaf.style.opacity = '0';
-            gardenBg.appendChild(leaf);
-        }
 
-        const lineChartOptions = {
-            plugins: {
-                legend: { labels: { color: '#d1d5db', font: { size: 14 } } }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 10,
-                    ticks: { 
-                        color: '#9ca3af',
-                        callback: function(value) {
-                            if (value === 0) return 'Low Stress';
-                            if (value === 5) return 'Medium Stress';
-                            if (value === 10) return 'High Stress';
-                            return null;
-                        }
-                    },
-                    grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                },
-                x: {
-                    ticks: { color: '#9ca3af' },
-                    grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                }
-            }
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, onSnapshot, getDocs, where, addDoc, serverTimestamp, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // CONFIG
+        const firebaseConfig = {
+            apiKey: "AIzaSyBq0HjzNJxwBrRGpn3TXFdUiOK-ye5fl44",
+            authDomain: "soulbloom-5ee07.firebaseapp.com",
+            projectId: "soulbloom-5ee07",
+            storageBucket: "soulbloom-5ee07.firebasestorage.app",
+            messagingSenderId: "713116806966",
+            appId: "1:713116806966:web:2f0ca2b5a4736f5816cd97",
+            measurementId: "G-17068CTD2S"
         };
 
-        const lineCtx = document.getElementById('studentStatusLineChart').getContext('2d');
-        const lineChart = new Chart(lineCtx, {
-            type: 'line',
-            data: {
-                labels: ['March', 'April', 'May', 'June', 'July', 'August'],
-                datasets: [{
-                    label: 'Average Stress Score (out of 10)',
-                    data: [6.5, 6.2, 5.5, 5.8, 5.2, 5.9],
-                    borderColor: '#4ade80',
-                    backgroundColor: 'rgba(74, 222, 128, 0.2)',
-                    tension: 0.4,
-                    fill: true,
-                    pointBackgroundColor: '#4ade80',
-                    pointBorderColor: '#fff',
-                    pointHoverRadius: 7,
-                    pointRadius: 5,
-                }]
-            },
-            options: lineChartOptions
-        });
+        const sanitizedAppId = 'default-app-id'; // Ensure this matches your student dashboard ID
 
-        const pieCtx = document.getElementById('studentStatusPieChart').getContext('2d');
-        const pieChart = new Chart(pieCtx, {
-            type: 'polarArea',
-            data: {
-                labels: ['Thriving', 'Stable', 'Struggling', 'In Crisis'],
-                datasets: [{
-                    label: 'Student Distribution',
-                    data: [45, 35, 15, 5], 
-                    backgroundColor: [
-                        'rgba(34, 197, 94, 0.7)',  // green-500
-                        'rgba(59, 130, 246, 0.7)',  // blue-500
-                        'rgba(245, 158, 11, 0.7)',  // amber-500
-                        'rgba(239, 68, 68, 0.7)'   // red-500
-                    ],
-                    borderWidth: 0,
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            color: '#d1d5db',
-                            font: { size: 14 },
-                            padding: 20
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                if (context.parsed !== null) {
-                                    label += context.parsed + '%';
-                                }
-                                return label;
-                            }
-                        }
-                    }
+        // INIT
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // --- 1. CORE ANALYTICS (The "Insight" Feature) ---
+        async function fetchAnalytics() {
+            try {
+                // Fetch ALL reports (For a hackathon, client-side aggregation is fine)
+                // In production, use Firebase Functions to count these
+                const reportsRef = collection(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports`);
+                const snapshot = await getDocs(reportsRef);
+                
+                let totalReports = snapshot.size;
+                let totalPHQ = 0;
+                let totalGAD = 0;
+                let severity = { normal: 0, mild: 0, moderate: 0, severe: 0 };
+
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const p = data.phqScore || 0;
+                    const g = data.gadScore || 0;
+                    
+                    totalPHQ += p;
+                    totalGAD += g;
+
+                    // Categorize Severity (Based on PHQ-9)
+                    if (p < 5) severity.normal++;
+                    else if (p < 10) severity.mild++;
+                    else if (p < 15) severity.moderate++;
+                    else severity.severe++;
+                });
+
+                // Calculate Averages
+                const avgPHQ = totalReports > 0 ? (totalPHQ / totalReports).toFixed(1) : 0;
+                const avgGAD = totalReports > 0 ? (totalGAD / totalReports).toFixed(1) : 0;
+                
+                // Update DOM
+                document.getElementById('stat-reports').innerText = totalReports;
+                document.getElementById('stat-anxiety').innerText = avgGAD; 
+                document.getElementById('stat-mood').innerText = (27 - avgPHQ).toFixed(1); // Inverted scale (27 is max depression)
+
+                // Update Chart
+                updateChart(severity);
+
+            } catch (e) {
+                console.error("Analytics Error:", e);
+            }
+        }
+
+        // --- 2. CHART RENDERING ---
+        let wellnessChartInstance = null;
+        function updateChart(data) {
+            const ctx = document.getElementById('wellnessChart').getContext('2d');
+            
+            if(wellnessChartInstance) wellnessChartInstance.destroy();
+
+            wellnessChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Thriving (0-4)', 'Mild Stress (5-9)', 'Moderate (10-14)', 'Critical (15+)'],
+                    datasets: [{
+                        label: 'Student Count',
+                        data: [data.normal, data.mild, data.moderate, data.severe],
+                        backgroundColor: [
+                            'rgba(34, 197, 94, 0.6)',  // Green
+                            'rgba(234, 179, 8, 0.6)',  // Yellow
+                            'rgba(249, 115, 22, 0.6)', // Orange
+                            'rgba(239, 68, 68, 0.6)'   // Red
+                        ],
+                        borderColor: [
+                            'rgb(34, 197, 94)',
+                            'rgb(234, 179, 8)',
+                            'rgb(249, 115, 22)',
+                            'rgb(239, 68, 68)'
+                        ],
+                        borderWidth: 1
+                    }]
                 },
-                scales: {
-                    r: {
-                        ticks: {
-                           display: false
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#9ca3af' }
                         },
-                        grid: {
-                           color: 'rgba(255, 255, 255, 0.15)'
+                        x: { 
+                            grid: { display: false },
+                            ticks: { color: '#9ca3af' }
                         }
                     }
                 }
+            });
+        }
+
+        // --- 3. FLAGGED USERS MONITOR (Real-time) ---
+        function listenForFlags() {
+            const flagsRef = collection(db, `artifacts/${sanitizedAppId}/public/data/flagged_users`);
+            const q = query(flagsRef, orderBy('timestamp', 'desc'), limit(10));
+
+            onSnapshot(q, (snapshot) => {
+                const tbody = document.getElementById('flagged-table-body');
+                document.getElementById('stat-alerts').innerText = snapshot.size; // Update Alert Count
+                
+                if (snapshot.empty) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No active alerts. Campus is calm.</td></tr>`;
+                    return;
+                }
+
+                let html = '';
+                snapshot.forEach(doc => {
+                    const d = doc.data();
+                    const date = d.timestamp?.toDate ? d.timestamp.toDate().toLocaleDateString() : 'Just now';
+                    
+                    html += `
+                        <tr class="hover:bg-white/5 transition border-b border-white/5">
+                            <td class="px-4 py-3 text-gray-400 font-mono text-xs">${date}</td>
+                            <td class="px-4 py-3 font-mono text-xs text-blue-300" title="${d.userId}">${d.userId.substring(0,8)}...</td>
+                            <td class="px-4 py-3 text-gray-200 italic">"${d.message}"</td>
+                            <td class="px-4 py-3"><span class="bg-red-500/20 text-red-300 px-2 py-0.5 rounded text-xs border border-red-500/30">High Risk</span></td>
+                            <td class="px-4 py-3">
+                                <button onclick="window.resolveFlag('${doc.id}')" class="text-green-400 hover:text-green-300 text-xs font-bold uppercase tracking-wider">Resolve</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+            });
+        }
+
+        // --- 4. ACTION HANDLERS (Global Scope) ---
+        
+        // Add Appointment (Saves to 'appointments' collection)
+        window.addAppointmentSlot = async () => {
+            const dateVal = document.getElementById('appt-date').value;
+            if(!dateVal) return alert("Select a date/time");
+            
+            try {
+                await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/appointments`), {
+                    startTime: new Date(dateVal),
+                    status: 'open',
+                    mentorName: "Dr. Evans",
+                    createdAt: serverTimestamp()
+                });
+                const msg = document.getElementById('appt-msg');
+                msg.classList.remove('hidden');
+                setTimeout(() => msg.classList.add('hidden'), 2000);
+            } catch(e) { console.error(e); alert("Error creating slot"); }
+        };
+
+        // Add Resource (Saves to 'resources' collection)
+        window.addResource = async () => {
+            const title = document.getElementById('res-title').value;
+            const url = document.getElementById('res-url').value;
+            if(!title || !url) return alert("Fill details");
+
+            try {
+                await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/resources`), {
+                    title: title,
+                    url: url,
+                    type: 'link',
+                    createdAt: serverTimestamp()
+                });
+                const msg = document.getElementById('res-msg');
+                msg.classList.remove('hidden');
+                setTimeout(() => msg.classList.add('hidden'), 2000);
+                document.getElementById('res-title').value = "";
+                document.getElementById('res-url').value = "";
+            } catch(e) { console.error(e); alert("Error adding resource"); }
+        }
+
+        // Placeholder for flag resolution
+        window.resolveFlag = (id) => {
+            alert("This would archive flag ID: " + id);
+            // Implement deleteDoc logic here if needed
+        }
+
+        window.logout = () => {
+            auth.signOut().then(() => window.location.href = '../index.html');
+        }
+
+        // STARTUP
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log("Admin Connected:", user.uid);
+                fetchAnalytics();
+                listenForFlags();
+                // Add floating leaves bg
+                const bg = document.getElementById('garden-bg');
+                for(let i=0; i<15; i++) {
+                    const leaf = document.createElement('div');
+                    leaf.className = 'leaf';
+                    leaf.style.left = Math.random() * 100 + 'vw';
+                    leaf.style.animationDuration = (15 + Math.random() * 15) + 's';
+                    leaf.style.animationDelay = (Math.random() * 10) + 's';
+                    bg.appendChild(leaf);
+                }
+            } else {
+                signInAnonymously(auth).catch(e => console.error(e));
             }
         });
-    });
+
+        lucide.createIcons();
     </script>
 </body>
 </html>
