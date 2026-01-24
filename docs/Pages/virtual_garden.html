@@ -24,15 +24,25 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* Plant Breathing Animation */
+        /* Plant Breathing Animation (Normal) */
         .plant-container {
-            transition: all 0.5s ease-in-out;
+            transition: transform 0.5s ease-in-out;
             animation: breathe 4s infinite ease-in-out;
             display: inline-block;
         }
         @keyframes breathe {
             0%, 100% { transform: scale(1) translateY(0); }
             50% { transform: scale(1.05) translateY(-10px); }
+        }
+
+        /* Evolution Animation (Level Up!) */
+        .evolving {
+            animation: evolveAnim 1.5s ease-in-out forwards;
+        }
+        @keyframes evolveAnim {
+            0% { transform: scale(1) rotate(0deg); filter: brightness(1); }
+            50% { transform: scale(0.1) rotate(180deg); filter: brightness(2) drop-shadow(0 0 50px gold); }
+            100% { transform: scale(1.2) rotate(360deg); filter: brightness(1); }
         }
 
         /* Water Drop Animation */
@@ -43,7 +53,7 @@
             pointer-events: none;
             z-index: 50;
             font-size: 3rem;
-            color: #60A5FA; /* Blue-400 */
+            color: #60A5FA;
         }
         @keyframes dropFall {
             0% { transform: translateY(-80px) scale(1); opacity: 1; }
@@ -63,6 +73,19 @@
         .stage-card { opacity: 0.4; filter: grayscale(0.8); transition: all 0.3s; border: 1px solid transparent; }
         .stage-card.unlocked { opacity: 1; filter: grayscale(0); border-color: rgba(74, 222, 128, 0.3); background: rgba(74, 222, 128, 0.05); }
         .stage-card.current { transform: scale(1.05); border-color: #4ADE80; background: rgba(74, 222, 128, 0.15); box-shadow: 0 0 20px rgba(74, 222, 128, 0.1); }
+
+        /* Evolution Button Style */
+        .evolve-btn {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); /* Gold/Orange */
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
+            border: 1px solid #FCD34D;
+            animation: pulse-gold 2s infinite;
+        }
+        @keyframes pulse-gold {
+            0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        }
 
         /* Loader */
         .loader {
@@ -104,8 +127,9 @@
                 <div class="absolute inset-0 bg-green-500/5 blur-[80px] rounded-full animate-pulse"></div>
                 
                 <div id="plant-wrapper" class="relative z-10">
-                    <div id="plant-display" class="plant-container text-[150px] md:text-[200px] drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)] select-none cursor-pointer" title="Click to water!">
-                        🌱 </div>
+                    <div id="plant-display" class="plant-container text-[150px] md:text-[200px] drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)] select-none cursor-pointer">
+                        🌱
+                    </div>
                 </div>
             </div>
 
@@ -115,13 +139,13 @@
             </div>
 
             <button id="water-btn" class="mt-8 group relative px-8 py-3 rounded-full bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold shadow-lg hover:shadow-cyan-500/30 transition-all transform hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden">
-                <span class="relative z-10 flex items-center gap-2">
+                <span id="btn-text-content" class="relative z-10 flex items-center gap-2">
                     <i data-lucide="cloud-rain" class="w-5 h-5 group-hover:rotate-12 transition-transform"></i>
                     Water Plant
                 </span>
                 <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
             </button>
-            <p class="text-xs text-gray-500 mt-3 flex items-center gap-1">
+            <p id="action-hint" class="text-xs text-gray-500 mt-3 flex items-center gap-1">
                 <i data-lucide="info" class="w-3 h-3"></i> Syncs automatically with Dashboard activity
             </p>
         </div>
@@ -143,7 +167,7 @@
                 </div>
                 
                 <div class="mt-3 flex justify-between text-xs text-gray-400 font-mono">
-                    <span>Current: <span id="current-level-text">Level 1</span></span>
+                    <span>Current Level: <span id="current-level-text" class="text-white">1</span></span>
                     <span>Next: <span id="next-stage-name" class="text-green-300">Sprout</span></span>
                 </div>
             </div>
@@ -220,14 +244,12 @@
     <div class="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
         <div class="absolute top-[15%] left-[5%] text-green-900/10 text-9xl animate-pulse font-serif opacity-20">☘️</div>
         <div class="absolute bottom-[10%] right-[5%] text-green-900/10 text-9xl animate-pulse font-serif opacity-20" style="animation-delay: 2s">🍃</div>
-        <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-green-500/5 blur-[120px] rounded-full"></div>
-        <div class="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/5 blur-[120px] rounded-full"></div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, getDocs, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, getDocs, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Firebase Configuration ---
         const firebaseConfig = {
@@ -240,7 +262,6 @@
             measurementId: "G-17068CTD2S"
         };
 
-        // FIXED: Using default-app-id to match your dashboard
         const sanitizedAppId = 'default-app-id';
 
         // --- Initialize Firebase ---
@@ -251,8 +272,6 @@
             db = getFirestore(app);
         } catch (e) {
             console.error("Firebase init error:", e);
-            document.getElementById('current-stage-name').innerText = "Connection Error";
-            document.getElementById('current-stage-desc').innerText = "Could not connect to the garden database.";
         }
 
         // --- DOM Elements ---
@@ -266,6 +285,8 @@
         const currentLevelText = document.getElementById('current-level-text');
         const userProfileDisplay = document.getElementById('user-profile-display');
         const waterBtn = document.getElementById('water-btn');
+        const btnTextContent = document.getElementById('btn-text-content');
+        const actionHint = document.getElementById('action-hint');
 
         // Stats Elements
         const statTasks = document.getElementById('stats-tasks');
@@ -274,11 +295,7 @@
         const statTotalScore = document.getElementById('stats-total-score');
 
         // --- Game Config ---
-        const XP_RATES = {
-            assignment: 10,
-            journal: 15,
-            screening: 50
-        };
+        const XP_RATES = { assignment: 10, journal: 15, screening: 50 };
 
         const STAGES = [
             { level: 1, name: "The Sleeping Seed", icon: "🌱", threshold: 0, desc: "A dormant potential waiting for care. Complete tasks to begin." },
@@ -289,23 +306,17 @@
 
         let currentUser = null;
         let currentXP = 0;
-        let isSyncing = false; // Flag to prevent overlaps
+        let isSyncing = false;
+        let userCurrentLevel = 1; // Fetched from DB
+        let isReadyToEvolve = false; // Flag to control button behavior
 
         // --- Main Auth Listener ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
-                console.log("Garden: User connected", user.uid);
-                
-                // 1. Load Profile Picture
                 loadUserProfile(user.uid);
-
-                // 2. Initial Sync
                 await syncGardenStats(user.uid);
-
-                // 3. Set up real-time listeners for instant updates
                 setupRealtimeListeners(user.uid);
-
             } else {
                 totalPointsDisplay.textContent = "Guest";
             }
@@ -318,150 +329,195 @@
                 const docRef = doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${uid}`);
                 const snap = await getDoc(docRef);
                 if (snap.exists()) {
-                    userProfileDisplay.textContent = snap.data().profilePic || '👤';
+                    const data = snap.data();
+                    userProfileDisplay.textContent = data.profilePic || '👤';
+                    // Load saved garden level or default to 1
+                    userCurrentLevel = data.gardenLevel || 1;
                 }
             } catch (e) {
                 console.error("Error loading profile:", e);
             }
         }
 
-        // --- Calculate XP based on collections ---
+        // --- Core Logic: Sync stats and calculate potential level ---
         async function syncGardenStats(uid) {
-            if (isSyncing) return; // Prevent race conditions
+            if (isSyncing) return; 
             isSyncing = true;
 
-            waterBtn.disabled = true;
-            waterBtn.innerHTML = '<div class="loader"></div>';
+            // Only show loader on text, don't disable if we want to allow clicking later
+            if(!isReadyToEvolve) totalPointsDisplay.innerText = "...";
 
             try {
-                // 1. Assignments (Completed only)
-                const assignRef = collection(db, `artifacts/${sanitizedAppId}/users/${uid}/assignments`);
-                const assignQ = query(assignRef, where("completed", "==", true));
-                const assignSnap = await getDocs(assignQ);
-                const completedAssignments = assignSnap.size;
+                // 1. Fetch Counts
+                const assignSnap = await getDocs(query(collection(db, `artifacts/${sanitizedAppId}/users/${uid}/assignments`), where("completed", "==", true)));
+                const journalSnap = await getDocs(collection(db, `artifacts/${sanitizedAppId}/users/${uid}/journal`));
+                const reportSnap = await getDocs(query(collection(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports`), where("userId", "==", uid)));
 
-                // 2. Journal Entries
-                const journalRef = collection(db, `artifacts/${sanitizedAppId}/users/${uid}/journal`);
-                const journalSnap = await getDocs(journalRef);
-                const journalEntries = journalSnap.size;
+                const countA = assignSnap.size;
+                const countJ = journalSnap.size;
+                const countS = reportSnap.size;
 
-                // 3. Screenings (Mental Health Reports)
-                const reportRef = collection(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports`);
-                const reportQ = query(reportRef, where("userId", "==", uid));
-                const reportSnap = await getDocs(reportQ);
-                const screenings = reportSnap.size;
-
-                // Calculate Logic
-                const calculatedXP = (completedAssignments * XP_RATES.assignment) + 
-                                     (journalEntries * XP_RATES.journal) + 
-                                     (screenings * XP_RATES.screening);
-
-                // Update DOM
-                statTasks.innerText = completedAssignments;
-                statJournal.innerText = journalEntries;
-                statScreening.innerText = screenings;
-                statTotalScore.innerText = calculatedXP;
-
+                // 2. Calculate XP
+                const calculatedXP = (countA * XP_RATES.assignment) + (countJ * XP_RATES.journal) + (countS * XP_RATES.screening);
                 currentXP = calculatedXP;
+
+                // 3. Update DOM Stats
+                statTasks.innerText = countA;
+                statJournal.innerText = countJ;
+                statScreening.innerText = countS;
+                statTotalScore.innerText = calculatedXP;
+                totalPointsDisplay.innerText = `${calculatedXP} XP`;
+
+                // 4. Check for Level Up
                 updateGardenUI(currentXP);
 
             } catch (error) {
                 console.error("Error syncing stats:", error);
             } finally {
-                waterBtn.disabled = false;
-                // Hardcoded reset string to prevent "saving" the spinner
-                waterBtn.innerHTML = `
-                    <span class="relative z-10 flex items-center gap-2">
-                        <i data-lucide="cloud-rain" class="w-5 h-5 group-hover:rotate-12 transition-transform"></i>
-                        Water Plant
-                    </span>
-                    <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                `;
-                lucide.createIcons(); 
                 isSyncing = false;
             }
         }
 
-        // --- Realtime Listeners ---
         function setupRealtimeListeners(uid) {
-            // Listen for changes and trigger sync
             onSnapshot(collection(db, `artifacts/${sanitizedAppId}/users/${uid}/journal`), () => syncGardenStats(uid));
             onSnapshot(collection(db, `artifacts/${sanitizedAppId}/users/${uid}/assignments`), () => syncGardenStats(uid));
         }
 
         function updateGardenUI(xp) {
-            totalPointsDisplay.innerText = `${xp} XP`;
-
-            let activeStage = STAGES[0];
+            // Determine "Potential" Stage based on points
+            let potentialStage = STAGES[0];
             let nextStage = STAGES[1]; 
 
             for (let i = 0; i < STAGES.length; i++) {
                 if (xp >= STAGES[i].threshold) {
-                    activeStage = STAGES[i];
+                    potentialStage = STAGES[i];
                     nextStage = STAGES[i + 1] || { name: "Max Level", threshold: xp }; 
                 }
             }
 
-            stageNameEl.innerText = activeStage.name;
-            stageDescEl.innerText = activeStage.desc;
-            plantDisplay.innerText = activeStage.icon;
-            currentLevelText.innerText = `Level ${activeStage.level}`;
+            // Logic: Is the potential level higher than what the user has "evolved" to?
+            if (potentialStage.level > userCurrentLevel) {
+                isReadyToEvolve = true;
+                setButtonState('evolve'); // Change button to "Evolve"
+                actionHint.innerHTML = "✨ You have enough energy to evolve! Click button above.";
+                actionHint.classList.add("text-yellow-400", "font-bold");
+                actionHint.classList.remove("text-gray-500");
+            } else {
+                isReadyToEvolve = false;
+                setButtonState('water'); // Standard "Water" button
+                actionHint.innerHTML = `<i data-lucide="info" class="w-3 h-3"></i> Syncs automatically with Dashboard activity`;
+                actionHint.classList.remove("text-yellow-400", "font-bold");
+                actionHint.classList.add("text-gray-500");
+            }
 
+            // Display the CURRENT unlocked stage (not the potential one)
+            // We find the stage object that matches the user's saved level
+            const currentDisplayStage = STAGES.find(s => s.level === userCurrentLevel) || STAGES[0];
+
+            stageNameEl.innerText = currentDisplayStage.name;
+            stageDescEl.innerText = currentDisplayStage.desc;
+            plantDisplay.innerText = currentDisplayStage.icon;
+            currentLevelText.innerText = `Level ${currentDisplayStage.level}`;
+
+            // Progress Bar Logic
             let progressPercent = 0;
-            if (nextStage.name !== "Max Level") {
-                const range = nextStage.threshold - activeStage.threshold;
-                const current = xp - activeStage.threshold;
+            const thresholdNext = STAGES.find(s => s.level === userCurrentLevel + 1)?.threshold || 9999;
+            const thresholdCurrent = currentDisplayStage.threshold;
+            
+            if (userCurrentLevel < 4) {
+                const range = thresholdNext - thresholdCurrent;
+                const current = xp - thresholdCurrent;
                 progressPercent = Math.min((current / range) * 100, 100);
-                progressText.innerText = `${xp} / ${nextStage.threshold} XP`;
-                nextStageName.innerText = nextStage.name;
+                progressText.innerText = `${xp} / ${thresholdNext} XP`;
+                nextStageName.innerText = STAGES.find(s => s.level === userCurrentLevel + 1).name;
             } else {
                 progressPercent = 100;
                 progressText.innerText = "Max Level Reached!";
                 nextStageName.innerText = "Complete";
             }
-            
             xpBar.style.width = `${progressPercent}%`;
 
+            // Grid Cards
             STAGES.forEach(stage => {
                 const card = document.getElementById(`stage-card-${stage.level}`);
                 if(card) {
-                    card.className = "stage-card glass p-3 rounded-lg text-center flex flex-col items-center justify-center min-h-[100px]"; // reset
-                    
-                    if (stage.level <= activeStage.level) {
-                        card.classList.add('unlocked');
-                    }
-                    if (stage.level === activeStage.level) {
-                        card.classList.add('current');
-                    }
+                    card.className = "stage-card glass p-3 rounded-lg text-center flex flex-col items-center justify-center min-h-[100px]"; 
+                    if (stage.level <= userCurrentLevel) card.classList.add('unlocked');
+                    if (stage.level === userCurrentLevel) card.classList.add('current');
                 }
             });
+            lucide.createIcons();
         }
 
-        // --- Interaction: Water Button ---
-        waterBtn.addEventListener('click', () => {
-            const drop = document.createElement('div');
-            drop.innerHTML = '<i data-lucide="droplet"></i>'; 
-            drop.innerText = "💧";
-            drop.classList.add('drop-animation');
-            
-            const plantRect = plantDisplay.getBoundingClientRect();
-            drop.style.left = "50%"; 
-            drop.style.top = "30%"; 
-            
-            const container = plantDisplay.parentElement;
-            container.appendChild(drop);
+        function setButtonState(state) {
+            if (state === 'evolve') {
+                waterBtn.classList.remove('from-cyan-600', 'to-blue-600');
+                waterBtn.classList.add('evolve-btn'); // Gold style
+                btnTextContent.innerHTML = `<i data-lucide="sparkles" class="w-5 h-5"></i> Evolve Plant!`;
+            } else {
+                waterBtn.classList.add('from-cyan-600', 'to-blue-600');
+                waterBtn.classList.remove('evolve-btn');
+                btnTextContent.innerHTML = `<i data-lucide="cloud-rain" class="w-5 h-5 group-hover:rotate-12 transition-transform"></i> Water Plant`;
+            }
+            lucide.createIcons();
+        }
 
-            plantDisplay.style.transform = "scale(1.2) rotate(5deg)";
-            setTimeout(() => {
-                plantDisplay.style.transform = "scale(1) rotate(0deg)";
-            }, 300);
-
-            if(currentUser) syncGardenStats(currentUser.uid);
-
-            setTimeout(() => {
-                drop.remove();
-            }, 1000);
+        // --- Interaction Handler ---
+        waterBtn.addEventListener('click', async () => {
+            if (isReadyToEvolve) {
+                // EVOLVE LOGIC
+                handleEvolution();
+            } else {
+                // WATER LOGIC (Just Animation & Sync)
+                handleWatering();
+            }
         });
+
+        async function handleEvolution() {
+            // 1. Play Evolution Animation
+            plantDisplay.classList.add('evolving');
+            
+            // 2. Increment Level locally
+            userCurrentLevel++;
+            
+            // 3. Save to Firebase
+            if (currentUser) {
+                const docRef = doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${currentUser.uid}`);
+                await setDoc(docRef, { gardenLevel: userCurrentLevel }, { merge: true });
+            }
+
+            // 4. Update UI after animation finishes
+            setTimeout(() => {
+                plantDisplay.classList.remove('evolving');
+                updateGardenUI(currentXP); // Refresh UI with new level
+                
+                // Celebration Confetti (Simple Emoji Burst)
+                for(let i=0; i<10; i++) createParticle('✨');
+                for(let i=0; i<10; i++) createParticle('🌿');
+
+            }, 1500);
+        }
+
+        function handleWatering() {
+            createParticle('💧');
+            plantDisplay.style.transform = "scale(1.2) rotate(5deg)";
+            setTimeout(() => { plantDisplay.style.transform = "scale(1) rotate(0deg)"; }, 300);
+            
+            // Trigger a sync just in case
+            if(currentUser) syncGardenStats(currentUser.uid);
+        }
+
+        function createParticle(char) {
+            const p = document.createElement('div');
+            p.innerText = char;
+            p.className = 'drop-animation';
+            p.style.left = "50%"; 
+            p.style.top = "40%";
+            // Random scatter
+            p.style.transform = `translate(${Math.random()*100 - 50}px, ${Math.random()*100 - 50}px)`;
+            plantDisplay.parentElement.appendChild(p);
+            setTimeout(() => p.remove(), 1000);
+        }
 
         lucide.createIcons();
 
