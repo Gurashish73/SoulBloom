@@ -1250,6 +1250,37 @@
                                         </div>
                                     </div>
                                 </div>
+                                <div class="space-y-6 mt-6"> 
+                                    <div class="glass p-6 rounded-2xl relative overflow-hidden">
+                                        <div class="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                                            <i data-lucide="calendar-check" class="w-24 h-24 text-blue-400"></i>
+                                        </div>
+                                        <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                            <i data-lucide="video" class="w-5 h-5 text-blue-400"></i> Mentor Sessions
+                                        </h3>
+                                        
+                                        <div class="flex gap-4 mb-4 border-b border-white/10 pb-2">
+                                            <button id="btn-tab-open" class="text-sm font-bold text-blue-400 border-b-2 border-blue-400 pb-1 transition-colors">Available</button>
+                                            <button id="btn-tab-booked" class="text-sm text-gray-400 hover:text-white transition pb-1">My Schedule</button>
+                                        </div>
+
+                                        <div id="open-slots-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                            <p class="text-xs text-gray-500 italic">Loading slots...</p>
+                                        </div>
+                                        <div id="my-sessions-list" class="hidden space-y-2 max-h-48 overflow-y-auto pr-1">
+                                            <p class="text-xs text-gray-500 italic">No sessions yet.</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="glass p-6 rounded-2xl">
+                                        <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                                            <i data-lucide="book-open" class="w-5 h-5 text-purple-400"></i> Resources
+                                        </h3>
+                                        <ul id="resource-list" class="space-y-3">
+                                            <li class="text-xs text-gray-500">Checking...</li>
+                                        </ul>
+                                    </div>
+                                </div>
                                  <!-- Music Player -->
                                 <div class="widget glass">
                                     <div class="flex justify-between items-center mb-4">
@@ -5764,7 +5795,192 @@ Use these when you don't know what to write.
                     });
             });
         }
+        // ============================================================
+    // --- SAFE MENTOR FEATURE ADDITION (Paste at bottom of script) ---
+    // ============================================================
 
+    // 1. Safe Tab Switching (No inline onclick to avoid scope issues)
+        setTimeout(() => {
+            const btnOpen = document.getElementById('btn-tab-open');
+            const btnBooked = document.getElementById('btn-tab-booked');
+            const listOpen = document.getElementById('open-slots-list');
+            const listBooked = document.getElementById('my-sessions-list');
+
+            if (btnOpen && btnBooked) {
+                btnOpen.addEventListener('click', () => {
+                    listOpen.classList.remove('hidden');
+                    listBooked.classList.add('hidden');
+                    btnOpen.className = "text-sm font-bold text-blue-400 border-b-2 border-blue-400 pb-1 transition-colors";
+                    btnBooked.className = "text-sm text-gray-400 hover:text-white transition pb-1";
+                });
+
+                btnBooked.addEventListener('click', () => {
+                    listOpen.classList.add('hidden');
+                    listBooked.classList.remove('hidden');
+                    btnBooked.className = "text-sm font-bold text-blue-400 border-b-2 border-blue-400 pb-1 transition-colors";
+                    btnOpen.className = "text-sm text-gray-400 hover:text-white transition pb-1";
+                });
+            }
+        }, 1000); // Small delay to ensure HTML is ready
+
+        // 2. Main Logic Function
+        async function initMentorFeatures(user) {
+            if (!user || !db) return;
+
+            // --- A. LISTEN FOR APPOINTMENTS ---
+            const slotsRef = collection(db, `artifacts/${sanitizedAppId}/public/data/appointments`);
+            // Note: Using onSnapshot directly to avoid import issues if orderBy/limit aren't imported
+            // We will sort manually in JS to be safe.
+            onSnapshot(slotsRef, (snapshot) => {
+                const openList = document.getElementById('open-slots-list');
+                const myList = document.getElementById('my-sessions-list');
+                if (!openList || !myList) return;
+
+                openList.innerHTML = '';
+                myList.innerHTML = '';
+
+                let docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                
+                // Sort by time (Earliest first)
+                docs.sort((a, b) => (a.startTime?.seconds || 0) - (b.startTime?.seconds || 0));
+
+                let openCount = 0;
+                let myCount = 0;
+
+                docs.forEach(data => {
+                    const dateObj = data.startTime?.toDate ? data.startTime.toDate() : new Date(data.startTime);
+                    if (dateObj < new Date()) return; // Skip past events
+
+                    const timeStr = dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    const dateStr = dateObj.toLocaleDateString();
+
+                    // Render Open Slot
+                    if (data.status === 'open') {
+                        openCount++;
+                        const item = document.createElement('div');
+                        item.className = "flex justify-between items-center p-3 bg-white/5 rounded-lg border border-white/5 hover:border-blue-500/50 transition-colors group";
+                        item.innerHTML = `
+                            <div>
+                                <div class="text-sm font-bold text-white">${dateStr}</div>
+                                <div class="text-xs text-blue-300">${timeStr}</div>
+                            </div>
+                            <button class="book-btn bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1 rounded transition opacity-0 group-hover:opacity-100">Book</button>
+                        `;
+                        // Attach event listener via JS (safer than onclick)
+                        item.querySelector('.book-btn').addEventListener('click', () => bookSession(data.id));
+                        openList.appendChild(item);
+                    }
+
+                    // Render My Booking
+                    if (data.status === 'booked' && data.studentId === user.uid) {
+                        myCount++;
+                        const item = document.createElement('div');
+                        item.className = "flex justify-between items-center p-3 bg-blue-900/20 rounded-lg border border-blue-500/30";
+                        item.innerHTML = `
+                            <div class="flex items-center gap-3">
+                                <div class="bg-blue-500/20 p-2 rounded-full text-blue-400"><i data-lucide="video" class="w-4 h-4"></i></div>
+                                <div>
+                                    <div class="text-sm font-bold text-white">${data.mentorName || 'Mentor Session'}</div>
+                                    <div class="text-xs text-gray-400">${dateStr} at ${timeStr}</div>
+                                </div>
+                            </div>
+                        `;
+                        myList.appendChild(item);
+                    }
+                });
+
+                if (openCount === 0) openList.innerHTML = `<p class="text-xs text-gray-500 italic p-2">No slots available.</p>`;
+                if (myCount === 0) myList.innerHTML = `<p class="text-xs text-gray-500 italic p-2">No upcoming sessions.</p>`;
+                
+                if(window.lucide) window.lucide.createIcons();
+            });
+
+            // --- B. LISTEN FOR RESOURCES ---
+            const resRef = collection(db, `artifacts/${sanitizedAppId}/public/data/resources`);
+            onSnapshot(resRef, (snapshot) => {
+                const list = document.getElementById('resource-list');
+                if (!list) return;
+                list.innerHTML = '';
+
+                if (snapshot.empty) {
+                    list.innerHTML = `<li class="text-xs text-gray-500">No resources yet.</li>`;
+                    return;
+                }
+
+                let resources = snapshot.docs.map(d => d.data());
+                // Sort new to old
+                resources.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
+                resources.forEach(r => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <a href="${r.url}" target="_blank" class="block p-3 rounded-lg bg-white/5 hover:bg-purple-900/20 hover:border-purple-500/50 border border-transparent transition-all group">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm font-medium text-gray-300 group-hover:text-purple-300">${r.title}</span>
+                                <i data-lucide="external-link" class="w-3 h-3 text-gray-600 group-hover:text-purple-400"></i>
+                            </div>
+                        </a>
+                    `;
+                    list.appendChild(li);
+                });
+                if(window.lucide) window.lucide.createIcons();
+            });
+
+            // --- C. LISTEN FOR NOTIFICATIONS ---
+            const notifRef = collection(db, `artifacts/${sanitizedAppId}/users/${user.uid}/notifications`);
+            onSnapshot(notifRef, (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === "added") {
+                        const n = change.doc.data();
+                        const now = new Date();
+                        const notifTime = n.createdAt?.toDate() || new Date();
+                        if ((now - notifTime) < 10000) { 
+                            showSafeToast(n.title, n.message);
+                        }
+                    }
+                });
+            });
+        }
+
+        // 3. Booking Action
+        async function bookSession(slotId) {
+            if(!confirm("Book this session?")) return;
+            try {
+                // Need 'doc' and 'updateDoc' from your imports. 
+                // If they aren't imported at top, this will fail.
+                // Assuming your imports are standard:
+                await updateDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/appointments/${slotId}`), {
+                    status: 'booked',
+                    studentId: currentUserId,
+                    studentName: currentUserAnonymousName || 'Student'
+                });
+                alert("Session Booked!");
+                // Auto switch tab
+                document.getElementById('btn-tab-booked').click();
+            } catch(e) {
+                console.error(e);
+                alert("Error booking session.");
+            }
+        }
+
+        // 4. Safe Toast
+        function showSafeToast(title, msg) {
+            const toast = document.createElement('div');
+            toast.className = "fixed bottom-5 right-5 bg-blue-600 text-white p-4 rounded-xl shadow-2xl z-[9999] animate-bounce";
+            toast.innerHTML = `<strong>${title}</strong><br><span class="text-sm">${msg}</span>`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 5000);
+        }
+
+        // 5. AUTO-START (Using your existing Auth listener hook)
+        // We hook into your existing onAuthStateChanged logic using a simple interval check
+        const checkAuthInterval = setInterval(() => {
+            if (currentUserId && db) {
+                console.log("Mentor Features: Hooking into user", currentUserId);
+                initMentorFeatures({ uid: currentUserId });
+                clearInterval(checkAuthInterval);
+            }
+        }, 1000);
     </script>
     <script>
         const swipeTarget = document.getElementById('main-content');
