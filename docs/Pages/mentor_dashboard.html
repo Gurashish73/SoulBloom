@@ -8,6 +8,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #0c1a1e; color: #e2e8f0; }
         .font-playfair { font-family: 'Playfair Display', serif; }
@@ -16,6 +21,12 @@
         #garden-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
         .leaf { position: absolute; width: 30px; height: 30px; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="%2322c55e" viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22L6.66 19.7C7.14 18.45 7.93 17.37 8.95 16.54C10 15.64 11.22 15 12.5 15H17V12H12.5C11.54 12 10.64 11.73 9.84 11.23C9.04 10.73 8.36 10.05 7.85 9.24C7.05 7.94 6.75 6.45 7 5C7.25 3.55 8.06 2.22 9.24 1.28L10.47 2.5L9.5 3.47C9.06 3.91 8.72 4.45 8.5 5C8.25 5.55 8.12 6.16 8.12 6.79C8.12 7.41 8.25 8.03 8.5 8.5C8.72 9.05 9.06 9.59 9.5 10.03L10.47 11L17 11V8Z"/></svg>'); background-size: contain; opacity: 0.1; animation: float 20s infinite linear; }
         @keyframes float { 0% { transform: translateY(100vh) rotate(0deg); } 100% { transform: translateY(-20vh) rotate(360deg); } }
+        
+        /* Flatpickr Customization */
+        .flatpickr-calendar { background: #1f2937 !important; border: 1px solid #374151 !important; box-shadow: 0 10px 25px rgba(0,0,0,0.5) !important; }
+        .flatpickr-day.selected { background: #22c55e !important; border-color: #22c55e !important; }
+        .flatpickr-time input:hover, .flatpickr-time .flatpickr-am-pm:hover { background: #374151 !important; }
+        input[data-input] { cursor: text !important; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -29,7 +40,7 @@
                 <span class="text-2xl font-bold font-playfair text-white">Soul Bloom <span class="text-base font-sans font-normal text-gray-400 ml-2">| Mentor Console</span></span>
             </div>
             <div class="flex items-center gap-4">
-                <button onclick="window.clearMockData()" class="hidden md:block bg-gray-600/20 border border-gray-500 text-gray-300 hover:bg-gray-600 hover:text-white px-3 py-1 rounded text-xs font-bold transition">
+                <button id="btn-clear" onclick="window.clearMockData()" class="hidden md:block bg-gray-600/20 border border-gray-500 text-gray-300 hover:bg-gray-600 hover:text-white px-3 py-1 rounded text-xs font-bold transition">
                     <i data-lucide="trash-2" class="w-3 h-3 inline mr-1"></i> Clear Data
                 </button>
                 <button onclick="window.simulateGraphData()" class="hidden md:block bg-blue-600/20 border border-blue-500 text-blue-300 hover:bg-blue-600 hover:text-white px-3 py-1 rounded text-xs font-bold transition">
@@ -38,15 +49,10 @@
                 <button onclick="window.simulateFlag()" class="hidden md:block bg-red-600/20 border border-red-500 text-red-300 hover:bg-red-600 hover:text-white px-3 py-1 rounded text-xs font-bold transition">
                     + Simulate Alert
                 </button>
-                
                 <div class="flex items-center gap-2 text-sm text-green-400 bg-green-900/30 px-3 py-1 rounded-full border border-green-500/30">
-                    <span class="relative flex h-2 w-2">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                    </span>
+                    <span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span></span>
                     <span class="hidden sm:inline">Live System</span>
                 </div>
-
                 <button onclick="logout()" class="bg-gray-700 hover:bg-red-600 text-white p-2 rounded-full transition-colors duration-300" title="Sign Out">
                     <i data-lucide="log-out" class="w-5 h-5"></i>
                 </button>
@@ -56,39 +62,16 @@
 
     <main class="container mx-auto p-6 flex-1">
         
-        <div class="mb-8">
-            <h1 class="text-3xl font-bold text-white mb-2">Campus Wellness Overview</h1>
-            <p class="text-gray-400">Real-time insights from student screenings and check-ins.</p>
-        </div>
+        <div class="mb-8"><h1 class="text-3xl font-bold text-white mb-2">Campus Wellness Overview</h1><p class="text-gray-400">Real-time insights from student screenings and check-ins.</p></div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div class="glass rounded-xl p-6 border-l-4 border-blue-500">
-                <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider">Total Reports</h3>
-                <p class="text-4xl font-bold text-white mt-2" id="stat-reports">Loading...</p>
-                <div class="text-xs text-blue-400 mt-2" id="stat-reports-label">Filtered View</div>
-            </div>
-            
-            <div class="glass rounded-xl p-6 border-l-4 border-yellow-500">
-                <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider">Avg Anxiety Score</h3>
-                <p class="text-4xl font-bold text-white mt-2" id="stat-anxiety">...</p>
-                <div class="text-xs text-yellow-400 mt-2">Based on GAD-7</div>
-            </div>
-
-            <div class="glass rounded-xl p-6 border-l-4 border-green-500">
-                <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider">Avg Mood Score</h3>
-                <p class="text-4xl font-bold text-white mt-2" id="stat-mood">...</p>
-                <div class="text-xs text-green-400 mt-2">Inverse PHQ-9 metric</div>
-            </div>
-
-            <div class="glass rounded-xl p-6 border-l-4 border-red-500">
-                <h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider">Active Alerts</h3>
-                <p class="text-4xl font-bold text-white mt-2" id="stat-alerts">...</p>
-                <div class="text-xs text-red-400 mt-2" id="alert-subtext">Requires attention</div>
-            </div>
+            <div class="glass rounded-xl p-6 border-l-4 border-blue-500"><h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider">Total Reports</h3><p class="text-4xl font-bold text-white mt-2" id="stat-reports">Loading...</p><div class="text-xs text-blue-400 mt-2" id="stat-reports-label">Filtered View</div></div>
+            <div class="glass rounded-xl p-6 border-l-4 border-yellow-500"><h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider">Avg Anxiety Score</h3><p class="text-4xl font-bold text-white mt-2" id="stat-anxiety">...</p><div class="text-xs text-yellow-400 mt-2">Based on GAD-7</div></div>
+            <div class="glass rounded-xl p-6 border-l-4 border-green-500"><h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider">Avg Mood Score</h3><p class="text-4xl font-bold text-white mt-2" id="stat-mood">...</p><div class="text-xs text-green-400 mt-2">Inverse PHQ-9 metric</div></div>
+            <div class="glass rounded-xl p-6 border-l-4 border-red-500"><h3 class="text-sm font-medium text-gray-400 uppercase tracking-wider">Active Alerts</h3><p class="text-4xl font-bold text-white mt-2" id="stat-alerts">...</p><div class="text-xs text-red-400 mt-2" id="alert-subtext">Requires attention</div></div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-            
             <div class="lg:col-span-2 glass rounded-xl p-6">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-xl font-bold text-white">Student Mental Health Distribution</h3>
@@ -99,61 +82,65 @@
                         <option value="all">All Time</option>
                     </select>
                 </div>
-                <div class="h-64">
-                    <canvas id="wellnessChart"></canvas>
-                </div>
+                <div class="h-64"><canvas id="wellnessChart"></canvas></div>
             </div>
 
-            <div class="glass rounded-xl p-6 flex flex-col gap-4">
-                <h3 class="text-xl font-bold text-white mb-2">Quick Actions</h3>
-                
-                <div class="bg-black/20 p-4 rounded-lg border border-white/5">
-                    <h4 class="text-sm font-bold text-blue-300 mb-2 flex items-center gap-2">
-                        <i data-lucide="calendar-plus" class="w-4 h-4"></i> Open Appointment Slot
-                    </h4>
-                    <div class="flex gap-2">
-                        <input type="datetime-local" id="appt-date" class="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-blue-500">
-                        <button onclick="addAppointmentSlot()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm font-bold">+</button>
+            <div class="glass rounded-xl p-6 flex flex-col h-full gap-6">
+                <div class="flex-1 flex flex-col min-h-0">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="calendar" class="w-5 h-5 text-blue-400"></i> Schedule</h3>
                     </div>
-                    <p id="appt-msg" class="text-xs text-green-400 mt-1 hidden">Slot Added!</p>
+                    <div id="appointments-list" class="flex-1 overflow-y-auto space-y-3 max-h-48 pr-1"><p class="text-gray-500 text-sm italic">Loading schedule...</p></div>
                 </div>
-
-                <div class="bg-black/20 p-4 rounded-lg border border-white/5">
-                    <h4 class="text-sm font-bold text-purple-300 mb-2 flex items-center gap-2">
-                        <i data-lucide="book-plus" class="w-4 h-4"></i> Add Resource Link
-                    </h4>
-                    <input type="text" id="res-title" placeholder="Resource Title" class="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-sm text-white mb-2 focus:outline-none focus:border-purple-500">
-                    <div class="flex gap-2">
-                        <input type="text" id="res-url" placeholder="URL" class="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-purple-500">
-                        <button onclick="addResource()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-sm font-bold">+</button>
+                <div class="border-t border-white/10 pt-4 space-y-4">
+                    <div>
+                        <label class="text-xs text-blue-300 block mb-1 font-bold">Open Appointment Slot</label>
+                        <div class="flatpickr-wrapper flex gap-2 relative">
+                            <input type="text" id="appt-date" data-input placeholder="2025 10 20 14 00 (Press Enter)" class="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-blue-500 cursor-text">
+                            <button type="button" data-toggle class="absolute right-14 top-1 text-gray-400 hover:text-white transition cursor-pointer"><i data-lucide="calendar-days" class="w-5 h-5"></i></button>
+                            <button onclick="addAppointmentSlot()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded text-xs font-bold transition">Add</button>
+                        </div>
+                        <p id="appt-msg" class="text-[10px] text-green-400 mt-1 hidden">Slot Added!</p>
                     </div>
-                    <p id="res-msg" class="text-xs text-green-400 mt-1 hidden">Resource Added!</p>
+                    <div>
+                        <label class="text-xs text-purple-300 block mb-1 font-bold">Add Resource Link</label>
+                        <input type="text" id="res-title" placeholder="Title" class="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-white mb-2 focus:outline-none focus:border-purple-500">
+                        <div class="flex gap-2">
+                            <input type="text" id="res-url" placeholder="https://..." class="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-purple-500">
+                            <button onclick="addResource()" class="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded text-xs font-bold transition">Add</button>
+                        </div>
+                        <p id="res-msg" class="text-[10px] text-green-400 mt-1 hidden">Resource Added!</p>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="glass rounded-xl p-6">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-bold text-red-400 flex items-center gap-2">
-                    <i data-lucide="shield-alert" class="w-5 h-5"></i> Flagged Content Review
-                </h3>
-                <span class="text-xs bg-red-900/30 text-red-300 px-2 py-1 rounded border border-red-500/30">Priority High</span>
+                <h3 class="text-xl font-bold text-red-400 flex items-center gap-2"><i data-lucide="shield-alert" class="w-5 h-5"></i> Flagged Content Review</h3>
+                
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-gray-400 uppercase">Filter:</span>
+                    <select id="flag-filter" onchange="window.renderFlags()" class="bg-black/30 border border-white/10 rounded px-3 py-1 text-xs text-gray-300 focus:outline-none focus:border-red-500 cursor-pointer">
+                        <option value="all">All Priorities</option>
+                        <option value="high">🔴 High Only</option>
+                        <option value="medium">🟠 Medium Only</option>
+                        <option value="low">🟡 Low Only</option>
+                    </select>
+                </div>
             </div>
-            
             <div class="overflow-x-auto">
                 <table class="w-full text-left">
                     <thead class="text-xs text-gray-400 uppercase bg-black/20 border-b border-white/10">
                         <tr>
-                            <th class="px-4 py-3">Timestamp</th>
+                            <th class="px-4 py-3 w-10">Prio</th> <th class="px-4 py-3">Timestamp</th>
                             <th class="px-4 py-3">User ID</th>
                             <th class="px-4 py-3">Trigger Content</th>
                             <th class="px-4 py-3">Action</th>
                         </tr>
                     </thead>
                     <tbody id="flagged-table-body" class="text-sm text-gray-300 divide-y divide-white/5">
-                        <tr>
-                            <td colspan="4" class="px-4 py-8 text-center text-gray-500">Connecting to live feed...</td>
-                        </tr>
+                        <tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">Connecting to live feed...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -163,73 +150,58 @@
 
     <div id="report-viewer-section" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100]">
         <div class="bg-gray-900 rounded-lg border border-gray-700 shadow-2xl max-w-2xl w-full p-6 m-4 relative">
-            <button onclick="document.getElementById('report-viewer-section').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-white">
-                <i data-lucide="x" class="w-6 h-6"></i>
-            </button>
-            <div class="mb-4 border-b border-gray-700 pb-4">
-                <h2 class="text-xl font-bold text-white flex items-center gap-2">
-                    <i data-lucide="file-text" class="w-5 h-5 text-blue-400"></i> Student Health Report
-                </h2>
-            </div>
-            <div id="single-report-content" class="space-y-4">
-                </div>
+            <button onclick="document.getElementById('report-viewer-section').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i data-lucide="x" class="w-6 h-6"></i></button>
+            <div class="mb-4 border-b border-gray-700 pb-4"><h2 class="text-xl font-bold text-white flex items-center gap-2"><i data-lucide="file-text" class="w-5 h-5 text-blue-400"></i> Student Health Report</h2></div>
+            <div id="single-report-content" class="space-y-4"></div>
         </div>
     </div>
 
     <div id="resolve-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[110]">
         <div class="glass max-w-md w-full p-6 rounded-2xl border border-red-500/30 shadow-[0_0_50px_rgba(220,38,38,0.2)]">
-            <div class="flex items-center gap-3 mb-4 text-red-400 border-b border-white/10 pb-4">
-                <div class="p-2 bg-red-500/20 rounded-lg">
-                    <i data-lucide="siren" class="w-6 h-6"></i>
-                </div>
-                <h2 class="text-xl font-bold">Crisis Resolution Center</h2>
-            </div>
-            
+            <div class="flex items-center gap-3 mb-4 text-red-400 border-b border-white/10 pb-4"><div class="p-2 bg-red-500/20 rounded-lg"><i data-lucide="siren" class="w-6 h-6"></i></div><h2 class="text-xl font-bold">Crisis Resolution Center</h2></div>
             <p class="text-sm text-gray-400 mb-6">Select an immediate action for Student <span id="res-student-id" class="text-white font-mono">...</span></p>
-
             <div class="space-y-3">
                 <button onclick="performAction('remind')" class="w-full flex items-center justify-between p-4 rounded-xl bg-gray-800 hover:bg-gray-700 border border-white/10 transition-all group">
-                    <div class="flex items-center gap-3">
-                        <div class="p-2 bg-blue-500/20 rounded-lg text-blue-400"><i data-lucide="bell-ring" class="w-5 h-5"></i></div>
-                        <div class="text-left">
-                            <div class="font-bold text-gray-200">Send Check-in Reminder</div>
-                            <div class="text-xs text-gray-500">Nudge student to update journal</div>
-                        </div>
-                    </div>
-                    <i data-lucide="chevron-right" class="w-4 h-4 text-gray-600 group-hover:text-white"></i>
+                    <div class="flex items-center gap-3"><div class="p-2 bg-blue-500/20 rounded-lg text-blue-400"><i data-lucide="bell-ring" class="w-5 h-5"></i></div><div class="text-left"><div class="font-bold text-gray-200">Send Check-in Reminder</div><div class="text-xs text-gray-500">Nudge student to update journal</div></div></div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-600 group-hover:text-white"></i>
                 </button>
-
-                <button onclick="performAction('book')" class="w-full flex items-center justify-between p-4 rounded-xl bg-gray-800 hover:bg-gray-700 border border-white/10 transition-all group">
-                    <div class="flex items-center gap-3">
-                        <div class="p-2 bg-purple-500/20 rounded-lg text-purple-400"><i data-lucide="calendar-check" class="w-5 h-5"></i></div>
-                        <div class="text-left">
-                            <div class="font-bold text-gray-200">Book Priority Session</div>
-                            <div class="text-xs text-gray-500">Schedule immediate 1:1 meeting</div>
-                        </div>
-                    </div>
-                    <i data-lucide="chevron-right" class="w-4 h-4 text-gray-600 group-hover:text-white"></i>
+                <button onclick="toggleBookingInput()" class="w-full flex items-center justify-between p-4 rounded-xl bg-gray-800 hover:bg-gray-700 border border-white/10 transition-all group">
+                    <div class="flex items-center gap-3"><div class="p-2 bg-purple-500/20 rounded-lg text-purple-400"><i data-lucide="calendar-check" class="w-5 h-5"></i></div><div class="text-left"><div class="font-bold text-gray-200">Book Priority Session</div><div class="text-xs text-gray-500">Schedule immediate 1:1 meeting</div></div></div><i data-lucide="chevron-down" class="w-4 h-4 text-gray-600 group-hover:text-white"></i>
                 </button>
-
+                <div id="booking-input-area" class="hidden p-4 rounded-xl bg-gray-800/50 border border-purple-500/30">
+                    <label class="text-xs text-purple-300 block mb-2">Select Date & Time:</label>
+                    <div class="priority-picker flex gap-2 relative mb-3">
+                        <input type="text" id="priority-date-input" data-input placeholder="2025 10 20 14 00" class="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-sm text-white mb-3 focus:outline-none focus:border-purple-500 cursor-text">
+                        <button type="button" data-toggle class="absolute right-3 top-2 text-purple-400 hover:text-white cursor-pointer"><i data-lucide="calendar-days" class="w-5 h-5"></i></button>
+                    </div>
+                    <button onclick="performAction('book')" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded text-sm font-bold transition">Confirm Booking</button>
+                </div>
                 <button onclick="performAction('resolve')" class="w-full flex items-center justify-between p-4 rounded-xl bg-gray-800 hover:bg-green-900/30 border border-white/10 hover:border-green-500/50 transition-all group">
-                    <div class="flex items-center gap-3">
-                        <div class="p-2 bg-green-500/20 rounded-lg text-green-400"><i data-lucide="check-circle-2" class="w-5 h-5"></i></div>
-                        <div class="text-left">
-                            <div class="font-bold text-gray-200 group-hover:text-green-300">Mark as Resolved</div>
-                            <div class="text-xs text-gray-500 group-hover:text-green-400/70">Archive this alert</div>
-                        </div>
-                    </div>
-                    <i data-lucide="chevron-right" class="w-4 h-4 text-gray-600 group-hover:text-white"></i>
+                    <div class="flex items-center gap-3"><div class="p-2 bg-green-500/20 rounded-lg text-green-400"><i data-lucide="check-circle-2" class="w-5 h-5"></i></div><div class="text-left"><div class="font-bold text-gray-200 group-hover:text-green-300">Mark as Resolved</div><div class="text-xs text-gray-500 group-hover:text-green-400/70">Archive this alert</div></div></div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-600 group-hover:text-white"></i>
                 </button>
             </div>
-
             <button onclick="closeResolveModal()" class="mt-6 w-full py-2 text-sm text-gray-500 hover:text-white transition">Cancel</button>
         </div>
     </div>
 
+    <div id="reschedule-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-sm flex items-center justify-center z-[120]">
+        <div class="glass max-w-sm w-full p-6 rounded-2xl border border-blue-500/30">
+            <h3 class="text-lg font-bold text-white mb-4">Reschedule Appointment</h3>
+            <label class="text-xs text-blue-300 block mb-2">Select New Date & Time:</label>
+            <div class="reschedule-picker flex gap-2 relative mb-4">
+                <input type="text" id="reschedule-date-input" data-input placeholder="2025 10 20 14 00" class="w-full bg-black/40 border border-white/10 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 cursor-text">
+                <button type="button" data-toggle class="absolute right-3 top-2 text-blue-400 hover:text-white cursor-pointer"><i data-lucide="calendar-days" class="w-5 h-5"></i></button>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="confirmReschedule()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded text-sm font-bold">Update</button>
+                <button onclick="document.getElementById('reschedule-modal').classList.add('hidden')" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-2 rounded text-sm">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
+        import { getFirestore, doc, collection, query, onSnapshot, getDocs, where, addDoc, deleteDoc, updateDoc, serverTimestamp, orderBy, limit, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, query, onSnapshot, getDocs, where, addDoc, deleteDoc, serverTimestamp, orderBy, limit, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // CONFIG
         const firebaseConfig = {
@@ -250,10 +222,51 @@
 
         // GLOBALS
         let allReports = []; 
+        let allFlags = []; // CACHE FOR FILTERING
         let currentFlagId = null;
         let currentStudentId = null;
+        let currentRescheduleId = null; 
 
-        // --- 1. DATA FETCHING ---
+        // --- INIT FLATPICKR ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const commonConfig = {
+                enableTime: true,
+                dateFormat: "Y-m-d H:i",
+                minDate: "today",
+                time_24hr: false,
+                allowInput: true, 
+                clickOpens: false, 
+                wrap: true        
+            };
+            const fp1 = flatpickr(".flatpickr-wrapper", commonConfig);
+            const fp2 = flatpickr(".priority-picker", commonConfig);
+            const fp3 = flatpickr(".reschedule-picker", commonConfig);
+
+            function setupSmartInput(inputSelector, fpInstance) {
+                const input = document.querySelector(inputSelector);
+                if(!input) return;
+                input.addEventListener("keydown", function(e) {
+                    if (e.key === "Enter") {
+                        e.preventDefault(); 
+                        const raw = input.value.trim();
+                        const regex = /^(\d{4})[\s\/-]?(\d{1,2})[\s\/-]?(\d{1,2})[\sT-]?(\d{1,2})[\s:-]?(\d{1,2})$/;
+                        const match = raw.match(regex);
+                        if (match) {
+                            const cleanDate = `${match[1]}-${match[2].padStart(2,'0')}-${match[3].padStart(2,'0')} ${match[4].padStart(2,'0')}:${match[5].padStart(2,'0')}`;
+                            fpInstance.setDate(cleanDate, true); 
+                            input.style.borderColor = "#22c55e"; setTimeout(() => input.style.borderColor = "rgba(255,255,255,0.1)", 1000);
+                        } else {
+                            input.style.borderColor = "#ef4444"; setTimeout(() => input.style.borderColor = "rgba(255,255,255,0.1)", 1000);
+                        }
+                    }
+                });
+            }
+            setupSmartInput("#appt-date", fp1);
+            setupSmartInput("#priority-date-input", fp2);
+            setupSmartInput("#reschedule-date-input", fp3);
+        });
+
+        // --- 1. ANALYTICS ---
         async function fetchAnalytics() {
             try {
                 const reportsRef = collection(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports`);
@@ -269,6 +282,9 @@
         window.filterAnalytics = (range) => {
             if (!allReports.length) {
                 document.getElementById('stat-reports').innerText = "0";
+                document.getElementById('stat-anxiety').innerText = "0.0";
+                document.getElementById('stat-mood').innerText = "-";
+                updateChart({ normal: 0, mild: 0, moderate: 0, severe: 0 });
                 return;
             }
             const now = new Date();
@@ -288,6 +304,15 @@
         function processStats(data) {
             let totalPHQ = 0, totalGAD = 0;
             let severity = { normal: 0, mild: 0, moderate: 0, severe: 0 };
+            
+            if (data.length === 0) {
+                document.getElementById('stat-reports').innerText = "0";
+                document.getElementById('stat-anxiety').innerText = "0.0"; 
+                document.getElementById('stat-mood').innerText = "-";
+                updateChart(severity);
+                return;
+            }
+
             data.forEach(r => {
                 const p = r.phqScore || 0;
                 totalPHQ += p;
@@ -327,42 +352,122 @@
             });
         }
 
-        // --- 3. FLAGGED USERS ---
+        // --- 3. FLAGGED USERS (WITH PRIORITY FILTER) ---
         function listenForFlags() {
             const flagsRef = collection(db, `artifacts/${sanitizedAppId}/public/data/flagged_users`);
-            const q = query(flagsRef, limit(15));
+            const q = query(flagsRef, limit(30)); // Fetch enough to filter
             onSnapshot(q, (snapshot) => {
-                const tbody = document.getElementById('flagged-table-body');
-                document.getElementById('stat-alerts').innerText = snapshot.size; 
-                if (snapshot.empty) { tbody.innerHTML = `<tr><td colspan="4" class="px-4 py-8 text-center text-gray-500">No active alerts.</td></tr>`; return; }
-                let html = '';
-                const docs = [];
-                snapshot.forEach(doc => docs.push({ id: doc.id, ...doc.data() }));
-                docs.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
-                docs.forEach(d => {
-                    const date = d.timestamp?.toDate ? d.timestamp.toDate().toLocaleString() : 'Just now';
-                    html += `
-                        <tr class="hover:bg-white/5 transition border-b border-white/5" id="row-${d.id}">
-                            <td class="px-4 py-3 text-gray-400 font-mono text-xs">${date}</td>
-                            <td class="px-4 py-3 font-mono text-xs text-blue-300">${d.userId.substring(0,8)}...</td>
-                            <td class="px-4 py-3 text-gray-200 italic">"${d.message}"</td>
-                            <td class="px-4 py-3">
-                                <div class="flex items-center gap-2">
-                                    <button onclick="window.checkReport('${d.userId}')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded text-xs font-bold">View Report</button>
-                                    <button onclick="window.openResolveModal('${d.id}', '${d.userId}')" class="bg-red-600/80 hover:bg-red-500 text-white px-3 py-1 rounded text-xs font-bold shadow-lg shadow-red-900/20">Take Action</button>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                });
-                tbody.innerHTML = html;
+                allFlags = [];
+                snapshot.forEach(doc => allFlags.push({ id: doc.id, ...doc.data() }));
+                // Sort by date desc
+                allFlags.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+                window.renderFlags(); // Initial Render
             });
         }
 
-        // --- 4. VIEW REPORT ---
+        window.renderFlags = () => {
+            const tbody = document.getElementById('flagged-table-body');
+            const filterVal = document.getElementById('flag-filter').value;
+            
+            // Client-side Filter
+            const filtered = allFlags.filter(f => {
+                if (filterVal === 'all') return true;
+                return f.priority === filterVal;
+            });
+
+            document.getElementById('stat-alerts').innerText = filtered.length; 
+
+            if (filtered.length === 0) { 
+                tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No flags match this filter.</td></tr>`; 
+                return; 
+            }
+
+            let html = '';
+            filtered.forEach(d => {
+                const date = d.timestamp?.toDate ? d.timestamp.toDate().toLocaleString() : 'Just now';
+                
+                // DOT LOGIC
+                let dotColor = 'bg-gray-500';
+                if(d.priority === 'high') dotColor = 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]';
+                else if(d.priority === 'medium') dotColor = 'bg-orange-500';
+                else if(d.priority === 'low') dotColor = 'bg-yellow-500';
+
+                html += `
+                    <tr class="hover:bg-white/5 transition border-b border-white/5" id="row-${d.id}">
+                        <td class="px-4 py-3"><div class="w-3 h-3 rounded-full ${dotColor} mx-auto" title="Priority: ${d.priority}"></div></td>
+                        <td class="px-4 py-3 text-gray-400 font-mono text-xs">${date}</td>
+                        <td class="px-4 py-3 font-mono text-xs text-blue-300">${d.userId.substring(0,8)}...</td>
+                        <td class="px-4 py-3 text-gray-200 italic">"${d.message}"</td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-2">
+                                <button onclick="window.checkReport('${d.userId}')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded text-xs font-bold">View Report</button>
+                                <button onclick="window.openResolveModal('${d.id}', '${d.userId}')" class="bg-red-600/80 hover:bg-red-500 text-white px-3 py-1 rounded text-xs font-bold shadow-lg shadow-red-900/20">Take Action</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            tbody.innerHTML = html;
+        };
+
+        // --- 4. APPOINTMENTS ---
+        function listenForAppointments() {
+            const apptRef = collection(db, `artifacts/${sanitizedAppId}/public/data/appointments`);
+            onSnapshot(query(apptRef), (snapshot) => {
+                const list = document.getElementById('appointments-list');
+                const appts = [];
+                snapshot.forEach(doc => appts.push({ id: doc.id, ...doc.data() }));
+                appts.sort((a, b) => (a.startTime?.seconds || 0) - (b.startTime?.seconds || 0));
+                
+                if (appts.length === 0) { list.innerHTML = `<p class="text-gray-500 text-xs text-center py-4">No sessions scheduled.</p>`; return; }
+
+                list.innerHTML = '';
+                appts.forEach(a => {
+                    const date = a.startTime?.toDate ? a.startTime.toDate() : new Date();
+                    const isPriority = a.status === 'booked' && a.mentorName.includes('Priority');
+                    const isBooked = a.status === 'booked';
+                    const borderClass = isPriority ? 'border-l-4 border-red-500' : (isBooked ? 'border-l-4 border-blue-500' : 'border-l-4 border-gray-500');
+                    const statusText = isPriority ? 'Priority Session' : (isBooked ? 'Booked' : 'Open Slot');
+                    
+                    const div = document.createElement('div');
+                    div.className = `p-3 bg-white/5 rounded ${borderClass} flex justify-between items-center group relative`;
+                    div.innerHTML = `<div><div class="text-sm font-bold text-gray-200">${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div><div class="text-xs text-gray-400">${statusText}</div></div><div class="flex items-center gap-2">${isBooked ? `<div class="bg-gray-700 px-2 py-1 rounded text-xs text-gray-300 font-mono">${a.studentId ? a.studentId.substring(0,4) : 'User'}</div>` : ''}<div class="flex gap-1 ml-2"><button onclick="window.rescheduleAppt('${a.id}')" title="Reschedule" class="p-1 text-gray-500 hover:text-blue-400 transition"><i data-lucide="clock" class="w-4 h-4"></i></button><button onclick="window.cancelAppt('${a.id}')" title="Cancel" class="p-1 text-gray-500 hover:text-red-400 transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></div>`;
+                    list.appendChild(div);
+                });
+                lucide.createIcons();
+            });
+        }
+
+        // --- NEW: RESCHEDULE LOGIC (Replaces Prompt) ---
+        window.rescheduleAppt = (id) => {
+            currentRescheduleId = id;
+            document.getElementById('reschedule-modal').classList.remove('hidden');
+        };
+
+        window.confirmReschedule = async () => {
+            const dateInput = document.getElementById('reschedule-date-input').value;
+            if(!dateInput || !currentRescheduleId) return alert("Select a time.");
+            
+            try {
+                await updateDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/appointments/${currentRescheduleId}`), {
+                    startTime: new Date(dateInput)
+                });
+                document.getElementById('reschedule-modal').classList.add('hidden');
+                currentRescheduleId = null;
+            } catch(e) { console.error(e); alert("Error rescheduling"); }
+        };
+
+        window.cancelAppt = async (id) => {
+            if(!confirm("Cancel this session?")) return;
+            try {
+                await deleteDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/appointments/${id}`));
+            } catch(e) { console.error(e); alert("Error deleting"); }
+        }
+
+        // --- 5. VIEW REPORT ---
         window.checkReport = async (userId) => {
             const reportsRef = collection(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports`);
-            const q = query(reportsRef, where("userId", "==", userId)); // Client sort again
+            const q = query(reportsRef, where("userId", "==", userId)); 
             const snapshot = await getDocs(q);
             const contentDiv = document.getElementById('single-report-content');
             const modal = document.getElementById('report-viewer-section');
@@ -371,17 +476,20 @@
                 docs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                 const data = docs[0];
                 const reportDate = data.createdAt?.toDate ? data.createdAt.toDate().toLocaleString() : 'N/A';
-                contentDiv.innerHTML = `<div class="grid grid-cols-2 gap-4 text-sm text-gray-300 mb-4 bg-black/20 p-3 rounded"><div><strong>User ID:</strong> <span class="font-mono text-blue-300">${data.userId}</span></div><div><strong>Date:</strong> ${reportDate}</div></div><div class="grid grid-cols-2 gap-4 text-sm mb-4"><div class="bg-black/40 p-3 rounded border border-white/5"><span class="text-gray-400 block text-xs uppercase mb-1">Depression (PHQ-9)</span><span class="font-bold text-xl ${data.phqScore > 9 ? 'text-red-400' : 'text-green-400'}">${data.phqScore}</span> / 27</div><div class="bg-black/40 p-3 rounded border border-white/5"><span class="text-gray-400 block text-xs uppercase mb-1">Anxiety (GAD-7)</span><span class="font-bold text-xl ${data.gadScore > 9 ? 'text-red-400' : 'text-green-400'}">${data.gadScore}</span> / 21</div></div><div class="bg-black/40 p-4 rounded text-gray-300 text-sm whitespace-pre-wrap border-l-2 border-blue-500">${data.report}</div>`;
+                const phqColor = data.phqScore >= 15 ? 'text-red-500' : (data.phqScore >= 10 ? 'text-yellow-400' : 'text-green-400');
+                const gadColor = data.gadScore >= 15 ? 'text-red-500' : (data.gadScore >= 10 ? 'text-yellow-400' : 'text-green-400');
+                contentDiv.innerHTML = `<div class="grid grid-cols-2 gap-4 text-sm text-gray-300 mb-4 bg-black/20 p-3 rounded"><div><strong>User ID:</strong> <span class="font-mono text-blue-300">${data.userId}</span></div><div><strong>Date:</strong> ${reportDate}</div></div><div class="grid grid-cols-2 gap-4 text-sm mb-4"><div class="bg-black/40 p-3 rounded border border-white/5"><span class="text-gray-400 block text-xs uppercase mb-1">Depression (PHQ-9)</span><span class="font-bold text-xl ${phqColor}">${data.phqScore}</span> / 27</div><div class="bg-black/40 p-3 rounded border border-white/5"><span class="text-gray-400 block text-xs uppercase mb-1">Anxiety (GAD-7)</span><span class="font-bold text-xl ${gadColor}">${data.gadScore}</span> / 21</div></div><div class="bg-black/40 p-4 rounded text-gray-300 text-sm whitespace-pre-wrap border-l-2 border-blue-500">${data.report}</div>`;
             } else { contentDiv.innerHTML = `<div class="text-center py-8"><p class="text-yellow-400 mb-2">No screening report found.</p><p class="text-xs text-gray-500">Likely Chat Analysis Flag.</p></div>`; }
             modal.classList.remove('hidden');
         };
 
-        // --- 5. NEW: RESOLUTION MODAL LOGIC ---
+        // --- 6. RESOLUTION ---
         window.openResolveModal = (flagId, userId) => {
             currentFlagId = flagId;
             currentStudentId = userId;
             document.getElementById('res-student-id').innerText = userId.substring(0, 8) + '...';
             document.getElementById('resolve-modal').classList.remove('hidden');
+            document.getElementById('booking-input-area').classList.add('hidden');
         };
 
         window.closeResolveModal = () => {
@@ -390,67 +498,146 @@
             currentStudentId = null;
         };
 
+        window.toggleBookingInput = () => {
+            const area = document.getElementById('booking-input-area');
+            area.classList.toggle('hidden');
+        };
+
         window.performAction = async (actionType) => {
             if (!currentStudentId || !currentFlagId) return;
-            const btn = event.currentTarget;
-            btn.innerHTML = `<div class="flex items-center gap-2"><div class="animate-spin h-4 w-4 border-2 border-white rounded-full border-t-transparent"></div> Processing...</div>`;
-
             try {
                 if (actionType === 'remind') {
-                    // Send Notification to Student
                     await addDoc(collection(db, `artifacts/${sanitizedAppId}/users/${currentStudentId}/notifications`), {
                         title: "Wellness Check-in",
                         message: "Dr. Evans noticed you might be stressed. Please fill out your journal today.",
                         type: "reminder",
                         createdAt: serverTimestamp()
                     });
-                    alert("Notification Sent to Student Dashboard!");
-                
+                    alert("Notification Sent!");
+                    window.closeResolveModal();
                 } else if (actionType === 'book') {
-                    // Create Booked Appointment
-                    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1); tomorrow.setHours(10, 0, 0, 0);
+                    const dateInput = document.getElementById('priority-date-input').value;
+                    if(!dateInput) { alert("Please select a date/time."); return; }
                     await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/appointments`), {
-                        startTime: tomorrow,
+                        startTime: new Date(dateInput),
                         status: 'booked',
                         mentorName: "Dr. Evans (Priority)",
                         studentId: currentStudentId,
                         createdAt: serverTimestamp()
                     });
-                    alert("Priority Session Booked for Tomorrow at 10 AM!");
-                
+                    alert("Priority Session Booked!");
+                    window.closeResolveModal();
                 } else if (actionType === 'resolve') {
-                    // Delete Flag
                     await deleteDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/flagged_users/${currentFlagId}`));
-                    // Also delete from table visually immediately
                     const row = document.getElementById(`row-${currentFlagId}`);
                     if (row) row.remove();
+                    window.closeResolveModal();
                 }
-                
-                window.closeResolveModal();
-
-            } catch (e) {
-                console.error("Action Error:", e);
-                alert("Action Failed: " + e.message);
-                btn.innerHTML = "Try Again";
-            }
+            } catch (e) { console.error("Action Error:", e); alert("Action Failed: " + e.message); }
         };
 
-        // --- 6. OTHER HANDLERS ---
-        window.addAppointmentSlot = async () => { /* ... existing logic ... */ };
-        window.addResource = async () => { /* ... existing logic ... */ };
+        // --- 7. OTHER ACTIONS ---
+        window.addAppointmentSlot = async () => {
+            const dateVal = document.getElementById('appt-date').value;
+            if(!dateVal) return alert("Select a date/time");
+            try {
+                await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/appointments`), {
+                    startTime: new Date(dateVal), status: 'open', mentorName: "Dr. Evans", createdAt: serverTimestamp()
+                });
+                document.getElementById('appt-date').value = '';
+                const msg = document.getElementById('appt-msg'); msg.classList.remove('hidden'); setTimeout(() => msg.classList.add('hidden'), 2000);
+            } catch(e) { console.error(e); alert("Error creating slot"); }
+        };
+
+        window.addResource = async () => {
+            const title = document.getElementById('res-title').value;
+            const url = document.getElementById('res-url').value;
+            if(!title || !url) return alert("Fill details");
+            try {
+                await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/resources`), {
+                    title: title, url: url, type: 'link', createdAt: serverTimestamp()
+                });
+                document.getElementById('res-title').value = ""; document.getElementById('res-url').value = "";
+                const msg = document.getElementById('res-msg'); msg.classList.remove('hidden'); setTimeout(() => msg.classList.add('hidden'), 2000);
+            } catch(e) { console.error(e); alert("Error adding resource"); }
+        };
+
+        window.resolveFlag = async (id) => { document.getElementById(`row-${id}`).style.opacity = '0.3'; }
+
+        // --- SIMULATION (Randomized Priority) ---
         window.simulateFlag = async () => {
-            const messages = ["Overwhelmed with exams.", "Feeling very low.", "Academic stress is too much.", "Sleepless nights due to anxiety."];
+            const severities = [
+                { type: 'Critical', priority: 'high', phq: 22, gad: 19, msg: "I can't take this anymore. Everything is too much." },
+                { type: 'Moderate', priority: 'medium', phq: 12, gad: 11, msg: "Feeling extremely anxious about my upcoming exams." },
+                { type: 'Mild', priority: 'low', phq: 7, gad: 6, msg: "Just feeling a bit down lately, not sure why." }
+            ];
+            const scenario = severities[Math.floor(Math.random() * severities.length)];
             const mockUserId = "test-user-" + Math.floor(Math.random()*1000);
             try {
-                await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/flagged_users`), { userId: mockUserId, message: messages[Math.floor(Math.random() * messages.length)], timestamp: serverTimestamp() });
-                await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports`), { userId: mockUserId, phqScore: 18, gadScore: 15, report: "Auto-generated report.", createdAt: serverTimestamp() });
+                await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/flagged_users`), { userId: mockUserId, message: scenario.msg, priority: scenario.priority, timestamp: serverTimestamp() });
+                await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports`), { userId: mockUserId, phqScore: scenario.phq, gadScore: scenario.gad, report: `Auto-generated report for ${scenario.type} simulated alert.`, createdAt: serverTimestamp() });
             } catch(e) { console.error(e); }
         };
-        window.simulateGraphData = async () => { /* ... existing logic ... */ };
-        window.clearMockData = async () => { /* ... existing logic ... */ };
+
+        window.simulateGraphData = async () => {
+            const batchSize = 30;
+            const reportsRef = collection(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports`);
+            alert("Generating 30 mock reports... The graphs will update in a few seconds.");
+            for (let i = 0; i < batchSize; i++) {
+                const rand = Math.random();
+                let phq, gad;
+                if (rand > 0.8) { phq = 15 + Math.floor(Math.random() * 10); gad = 15 + Math.floor(Math.random() * 6); } 
+                else if (rand > 0.5) { phq = 8 + Math.floor(Math.random() * 7); gad = 8 + Math.floor(Math.random() * 7); } 
+                else { phq = Math.floor(Math.random() * 5); gad = Math.floor(Math.random() * 5); }
+                const date = new Date();
+                date.setDate(date.getDate() - Math.floor(Math.random() * 30));
+                try {
+                    await addDoc(reportsRef, { userId: `mock-student-${Math.floor(Math.random() * 9000)}`, phqScore: phq, gadScore: gad, report: "Simulated Data for Demo purposes.", createdAt: Timestamp.fromDate(date) });
+                } catch(e) { console.log("Simulate error", e); }
+            }
+        };
+        
+        window.clearMockData = async () => {
+            if (!confirm("Delete simulated data?")) return;
+            const btn = document.getElementById('btn-clear');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `Cleaning...`;
+            btn.disabled = true;
+            try {
+                const reportsRef = collection(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports`);
+                const qReports = query(reportsRef, where("userId", ">=", "mock-student-"), where("userId", "<=", "mock-student-\uf8ff"));
+                const snapReports = await getDocs(qReports);
+                const deleteReportPromises = snapReports.docs.map(doc => deleteDoc(doc.ref));
+                await Promise.all(deleteReportPromises);
+
+                const alertsRef = collection(db, `artifacts/${sanitizedAppId}/public/data/flagged_users`);
+                const qAlerts = query(alertsRef, where("userId", ">=", "test-user-"), where("userId", "<=", "test-user-\uf8ff"));
+                const snapAlerts = await getDocs(qAlerts);
+                const deleteAlertPromises = snapAlerts.docs.map(doc => deleteDoc(doc.ref));
+                await Promise.all(deleteAlertPromises);
+
+                const qReports2 = query(reportsRef, where("userId", ">=", "test-user-"), where("userId", "<=", "test-user-\uf8ff"));
+                const snapReports2 = await getDocs(qReports2);
+                const deleteReport2Promises = snapReports2.docs.map(doc => deleteDoc(doc.ref));
+                await Promise.all(deleteReport2Promises);
+
+                alert(`Cleared data!`);
+                allReports = []; 
+                fetchAnalytics(); 
+            } catch(e) { console.error("Clear Error:", e); } 
+            finally { btn.innerHTML = originalText; btn.disabled = false; }
+        };
+        
         window.logout = () => { auth.signOut().then(() => window.location.href = '../index.html'); }
 
-        onAuthStateChanged(auth, (user) => { if(user) { fetchAnalytics(); listenForFlags(); const bg = document.getElementById('garden-bg'); for(let i=0; i<15; i++) { const leaf = document.createElement('div'); leaf.className = 'leaf'; leaf.style.left = Math.random() * 100 + 'vw'; leaf.style.animationDuration = (15 + Math.random() * 15) + 's'; leaf.style.animationDelay = (Math.random() * 10) + 's'; bg.appendChild(leaf); } } else { signInAnonymously(auth).catch(e => console.error(e)); } });
+        onAuthStateChanged(auth, (user) => { 
+            if(user) { 
+                fetchAnalytics(); 
+                listenForFlags(); 
+                listenForAppointments();
+                const bg = document.getElementById('garden-bg'); for(let i=0; i<15; i++) { const leaf = document.createElement('div'); leaf.className = 'leaf'; leaf.style.left = Math.random() * 100 + 'vw'; leaf.style.animationDuration = (15 + Math.random() * 15) + 's'; leaf.style.animationDelay = (Math.random() * 10) + 's'; bg.appendChild(leaf); } 
+            } else { signInAnonymously(auth).catch(e => console.error(e)); } 
+        });
         lucide.createIcons();
     </script>
 </body>
