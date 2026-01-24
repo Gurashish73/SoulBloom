@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SoulBloom | Virtual Garden</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #0F2923;
+            color: #E0E0E0;
+            overflow-x: hidden;
+        }
+        .font-vt323 { font-family: 'VT323', monospace; }
+        
+        .glass {
+            background: rgba(69, 71, 74, 0.281);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Plant Breathing Animation */
+        .plant-container {
+            transition: all 0.5s ease-in-out;
+            animation: breathe 4s infinite ease-in-out;
+            display: inline-block;
+        }
+        @keyframes breathe {
+            0%, 100% { transform: scale(1) translateY(0); }
+            50% { transform: scale(1.05) translateY(-10px); }
+        }
+
+        /* Water Drop Animation */
+        .drop-animation {
+            position: absolute;
+            animation: dropFall 1s forwards;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 50;
+            font-size: 3rem;
+            color: #60A5FA; /* Blue-400 */
+        }
+        @keyframes dropFall {
+            0% { transform: translateY(-80px) scale(1); opacity: 1; }
+            50% { opacity: 1; }
+            100% { transform: translateY(0) scale(0.5); opacity: 0; }
+        }
+
+        /* Progress Bar */
+        .xp-bar-bg { background-color: #2E3338; }
+        .xp-bar-fill { 
+            background: linear-gradient(90deg, #4ADE80, #22c55e);
+            box-shadow: 0 0 15px rgba(74, 222, 128, 0.5);
+            transition: width 1s ease-in-out;
+        }
+
+        /* Stage Cards */
+        .stage-card { opacity: 0.4; filter: grayscale(0.8); transition: all 0.3s; border: 1px solid transparent; }
+        .stage-card.unlocked { opacity: 1; filter: grayscale(0); border-color: rgba(74, 222, 128, 0.3); background: rgba(74, 222, 128, 0.05); }
+        .stage-card.current { transform: scale(1.05); border-color: #4ADE80; background: rgba(74, 222, 128, 0.15); box-shadow: 0 0 20px rgba(74, 222, 128, 0.1); }
+
+        /* Loader */
+        .loader {
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top: 3px solid #4ADE80;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col relative">
+
+    <nav class="w-full glass p-4 flex justify-between items-center z-20 sticky top-0">
+        <div class="flex items-center gap-4">
+            <a href="student_dashboard.html" class="flex items-center gap-2 text-gray-400 hover:text-white transition group">
+                <i data-lucide="arrow-left" class="w-5 h-5 group-hover:-translate-x-1 transition-transform"></i>
+                <span class="hidden md:inline">Back to Dashboard</span>
+            </a>
+            <span class="text-2xl font-vt323 text-green-400 tracking-wider">SoulBloom Garden</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 bg-black/40 px-4 py-1.5 rounded-full border border-white/10">
+                <i data-lucide="droplets" class="w-4 h-4 text-cyan-400"></i>
+                <span id="total-points-display" class="font-mono text-cyan-200 font-bold">Loading...</span>
+            </div>
+            <div id="user-profile-display" class="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-xl border border-white/20 shadow-lg">👤</div>
+        </div>
+    </nav>
+
+    <div class="flex-1 flex flex-col lg:flex-row max-w-7xl mx-auto w-full p-4 md:p-8 gap-8 z-10 relative">
+        
+        <div class="lg:w-1/2 flex flex-col items-center justify-center relative min-h-[400px]">
+            
+            <div class="relative w-full max-w-md aspect-square flex items-center justify-center">
+                <div class="absolute inset-0 bg-green-500/5 blur-[80px] rounded-full animate-pulse"></div>
+                
+                <div id="plant-wrapper" class="relative z-10">
+                    <div id="plant-display" class="plant-container text-[150px] md:text-[200px] drop-shadow-[0_10px_10px_rgba(0,0,0,0.5)] select-none cursor-pointer" title="Click to water!">
+                        🌱 </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4 z-10">
+                <h1 id="current-stage-name" class="text-4xl md:text-5xl font-vt323 text-white mb-2 drop-shadow-md">The Sleeping Seed</h1>
+                <p id="current-stage-desc" class="text-gray-400 max-w-md mx-auto text-lg">Your journey begins here. Complete tasks to grow.</p>
+            </div>
+
+            <button id="water-btn" class="mt-8 group relative px-8 py-3 rounded-full bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold shadow-lg hover:shadow-cyan-500/30 transition-all transform hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden">
+                <span class="relative z-10 flex items-center gap-2">
+                    <i data-lucide="watering-can" class="w-5 h-5 group-hover:rotate-12 transition-transform"></i>
+                    Water Plant
+                </span>
+                <div class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+            </button>
+            <p class="text-xs text-gray-500 mt-3 flex items-center gap-1">
+                <i data-lucide="info" class="w-3 h-3"></i> Syncs automatically with Dashboard activity
+            </p>
+        </div>
+
+        <div class="lg:w-1/2 flex flex-col gap-6 justify-center">
+            
+            <div class="glass p-6 rounded-2xl border-t border-white/10 relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+                
+                <div class="flex justify-between mb-3 font-vt323 text-2xl tracking-wide">
+                    <span class="text-gray-200">Growth Progress</span>
+                    <span id="progress-text" class="text-green-400">0 / 50 XP</span>
+                </div>
+                
+                <div class="w-full h-6 xp-bar-bg rounded-full overflow-hidden shadow-inner border border-white/5">
+                    <div id="xp-progress-bar" class="h-full xp-bar-fill w-0 relative">
+                        <div class="absolute inset-0 bg-white/10 w-full h-full animate-[shimmer_2s_infinite]"></div>
+                    </div>
+                </div>
+                
+                <div class="mt-3 flex justify-between text-xs text-gray-400 font-mono">
+                    <span>Current: <span id="current-level-text">Level 1</span></span>
+                    <span>Next: <span id="next-stage-name" class="text-green-300">Sprout</span></span>
+                </div>
+            </div>
+
+            <div class="glass p-6 rounded-2xl">
+                <h3 class="text-lg font-bold mb-4 flex items-center gap-2 text-gray-200 border-b border-white/10 pb-2">
+                    <i data-lucide="sprout" class="w-5 h-5 text-green-400"></i> Nutrient Breakdown
+                </h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-black/30 p-4 rounded-xl border border-white/5 hover:border-yellow-500/30 transition-colors group">
+                        <div class="text-gray-400 text-xs uppercase font-bold tracking-wider mb-1">Assignments</div>
+                        <div class="flex items-end justify-between">
+                            <div class="text-3xl font-bold text-yellow-400" id="stats-tasks">0</div>
+                            <i data-lucide="clipboard-check" class="w-6 h-6 text-gray-600 group-hover:text-yellow-400 transition-colors"></i>
+                        </div>
+                        <div class="text-[10px] text-gray-500 mt-1">+10 XP per task</div>
+                    </div>
+
+                    <div class="bg-black/30 p-4 rounded-xl border border-white/5 hover:border-pink-500/30 transition-colors group">
+                        <div class="text-gray-400 text-xs uppercase font-bold tracking-wider mb-1">Journaling</div>
+                        <div class="flex items-end justify-between">
+                            <div class="text-3xl font-bold text-pink-400" id="stats-journal">0</div>
+                            <i data-lucide="book-heart" class="w-6 h-6 text-gray-600 group-hover:text-pink-400 transition-colors"></i>
+                        </div>
+                        <div class="text-[10px] text-gray-500 mt-1">+15 XP per entry</div>
+                    </div>
+
+                    <div class="bg-black/30 p-4 rounded-xl border border-white/5 hover:border-blue-500/30 transition-colors group">
+                        <div class="text-gray-400 text-xs uppercase font-bold tracking-wider mb-1">Screenings</div>
+                        <div class="flex items-end justify-between">
+                            <div class="text-3xl font-bold text-blue-400" id="stats-screening">0</div>
+                            <i data-lucide="activity" class="w-6 h-6 text-gray-600 group-hover:text-blue-400 transition-colors"></i>
+                        </div>
+                        <div class="text-[10px] text-gray-500 mt-1">+50 XP per check</div>
+                    </div>
+
+                    <div class="bg-gradient-to-br from-green-900/40 to-black/40 p-4 rounded-xl border border-green-500/20">
+                        <div class="text-gray-400 text-xs uppercase font-bold tracking-wider mb-1">Total Score</div>
+                        <div class="flex items-end justify-between">
+                            <div class="text-3xl font-bold text-white" id="stats-total-score">0</div>
+                            <i data-lucide="trophy" class="w-6 h-6 text-green-400"></i>
+                        </div>
+                        <div class="text-[10px] text-green-400/70 mt-1">Keep growing!</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-3 mt-2">
+                <div id="stage-card-1" class="stage-card glass p-3 rounded-lg text-center flex flex-col items-center justify-center min-h-[100px]">
+                    <div class="text-3xl mb-2">🌱</div>
+                    <div class="text-xs font-bold text-white uppercase">Seed</div>
+                    <div class="text-[10px] text-gray-500 mt-1">0 XP</div>
+                </div>
+                <div id="stage-card-2" class="stage-card glass p-3 rounded-lg text-center flex flex-col items-center justify-center min-h-[100px]">
+                    <div class="text-3xl mb-2">🌿</div>
+                    <div class="text-xs font-bold text-white uppercase">Sprout</div>
+                    <div class="text-[10px] text-gray-500 mt-1">50 XP</div>
+                </div>
+                <div id="stage-card-3" class="stage-card glass p-3 rounded-lg text-center flex flex-col items-center justify-center min-h-[100px]">
+                    <div class="text-3xl mb-2">🪴</div>
+                    <div class="text-xs font-bold text-white uppercase">Sapling</div>
+                    <div class="text-[10px] text-gray-500 mt-1">150 XP</div>
+                </div>
+                <div id="stage-card-4" class="stage-card glass p-3 rounded-lg text-center flex flex-col items-center justify-center min-h-[100px]">
+                    <div class="text-3xl mb-2">🌸</div>
+                    <div class="text-xs font-bold text-white uppercase">Bloom</div>
+                    <div class="text-[10px] text-gray-500 mt-1">300 XP</div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+        <div class="absolute top-[15%] left-[5%] text-green-900/10 text-9xl animate-pulse font-serif opacity-20">☘️</div>
+        <div class="absolute bottom-[10%] right-[5%] text-green-900/10 text-9xl animate-pulse font-serif opacity-20" style="animation-delay: 2s">🍃</div>
+        <div class="absolute top-0 right-0 w-[500px] h-[500px] bg-green-500/5 blur-[120px] rounded-full"></div>
+        <div class="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/5 blur-[120px] rounded-full"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, getDocs, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Firebase Configuration ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBq0HjzNJxwBrRGpn3TXFdUiOK-ye5fl44",
+            authDomain: "soulbloom-5ee07.firebaseapp.com",
+            projectId: "soulbloom-5ee07",
+            storageBucket: "soulbloom-5ee07.firebasestorage.app",
+            messagingSenderId: "713116806966",
+            appId: "1:713116806966:web:2f0ca2b5a4736f5816cd97",
+            measurementId: "G-17068CTD2S"
+        };
+
+        const sanitizedAppId = 'default-app-id';
+
+        // --- Initialize Firebase ---
+        let app, auth, db;
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch (e) {
+            console.error("Firebase init error:", e);
+            document.getElementById('current-stage-name').innerText = "Connection Error";
+            document.getElementById('current-stage-desc').innerText = "Could not connect to the garden database.";
+        }
+
+        // --- DOM Elements ---
+        const plantDisplay = document.getElementById('plant-display');
+        const stageNameEl = document.getElementById('current-stage-name');
+        const stageDescEl = document.getElementById('current-stage-desc');
+        const xpBar = document.getElementById('xp-progress-bar');
+        const progressText = document.getElementById('progress-text');
+        const totalPointsDisplay = document.getElementById('total-points-display');
+        const nextStageName = document.getElementById('next-stage-name');
+        const currentLevelText = document.getElementById('current-level-text');
+        const userProfileDisplay = document.getElementById('user-profile-display');
+        const waterBtn = document.getElementById('water-btn');
+
+        // Stats Elements
+        const statTasks = document.getElementById('stats-tasks');
+        const statJournal = document.getElementById('stats-journal');
+        const statScreening = document.getElementById('stats-screening');
+        const statTotalScore = document.getElementById('stats-total-score');
+
+        // --- Game Config ---
+        const XP_RATES = {
+            assignment: 10,
+            journal: 15,
+            screening: 50
+        };
+
+        const STAGES = [
+            { level: 1, name: "The Sleeping Seed", icon: "🌱", threshold: 0, desc: "A dormant potential waiting for care. Complete tasks to begin." },
+            { level: 2, name: "The Brave Sprout", icon: "🌿", threshold: 50, desc: "Breaking through the soil with new habits. Keep going!" },
+            { level: 3, name: "The Growing Sapling", icon: "🪴", threshold: 150, desc: "Standing tall and gathering strength from your efforts." },
+            { level: 4, name: "The Soul Bloom", icon: "🌸", threshold: 300, desc: "Fully blossomed, radiating peace and resilience. You've grown so much!" }
+        ];
+
+        let currentUser = null;
+        let currentXP = 0;
+
+        // --- Main Auth Listener ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                console.log("Garden: User connected", user.uid);
+                
+                // 1. Load Profile Picture
+                loadUserProfile(user.uid);
+
+                // 2. Initial Sync
+                await syncGardenStats(user.uid);
+
+                // 3. Set up real-time listeners for instant updates
+                setupRealtimeListeners(user.uid);
+
+            } else {
+                // If accessed directly without login, redirect or show guest state
+                // window.location.href = "student_dashboard.html"; 
+                totalPointsDisplay.textContent = "Guest";
+            }
+        });
+
+        // --- Logic Functions ---
+
+        async function loadUserProfile(uid) {
+            try {
+                const docRef = doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${uid}`);
+                const snap = await getDoc(docRef);
+                if (snap.exists()) {
+                    userProfileDisplay.textContent = snap.data().profilePic || '👤';
+                }
+            } catch (e) {
+                console.error("Error loading profile:", e);
+            }
+        }
+
+        // --- Calculate XP based on collections ---
+        async function syncGardenStats(uid) {
+            waterBtn.disabled = true;
+            const originalBtnContent = waterBtn.innerHTML;
+            waterBtn.innerHTML = '<div class="loader"></div>';
+
+            try {
+                // 1. Assignments (Completed only)
+                const assignRef = collection(db, `artifacts/${sanitizedAppId}/users/${uid}/assignments`);
+                const assignQ = query(assignRef, where("completed", "==", true));
+                const assignSnap = await getDocs(assignQ);
+                const completedAssignments = assignSnap.size;
+
+                // 2. Journal Entries
+                const journalRef = collection(db, `artifacts/${sanitizedAppId}/users/${uid}/journal`);
+                const journalSnap = await getDocs(journalRef);
+                const journalEntries = journalSnap.size;
+
+                // 3. Screenings (Mental Health Reports)
+                const reportRef = collection(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports`);
+                const reportQ = query(reportRef, where("userId", "==", uid));
+                const reportSnap = await getDocs(reportQ);
+                const screenings = reportSnap.size;
+
+                // Calculate Logic
+                const calculatedXP = (completedAssignments * XP_RATES.assignment) + 
+                                     (journalEntries * XP_RATES.journal) + 
+                                     (screenings * XP_RATES.screening);
+
+                // Update DOM
+                statTasks.innerText = completedAssignments;
+                statJournal.innerText = journalEntries;
+                statScreening.innerText = screenings;
+                statTotalScore.innerText = calculatedXP;
+
+                currentXP = calculatedXP;
+                updateGardenUI(currentXP);
+
+            } catch (error) {
+                console.error("Error syncing stats:", error);
+            } finally {
+                waterBtn.disabled = false;
+                waterBtn.innerHTML = originalBtnContent;
+                lucide.createIcons(); // Re-render icons if button reset
+            }
+        }
+
+        // --- Realtime Listeners (Optional but cool) ---
+        function setupRealtimeListeners(uid) {
+            // Listen for Journal Changes
+            onSnapshot(collection(db, `artifacts/${sanitizedAppId}/users/${uid}/journal`), () => syncGardenStats(uid));
+            // Listen for Assignments
+            onSnapshot(collection(db, `artifacts/${sanitizedAppId}/users/${uid}/assignments`), () => syncGardenStats(uid));
+        }
+
+        function updateGardenUI(xp) {
+            totalPointsDisplay.innerText = `${xp} XP`;
+
+            // 1. Find Current Stage
+            let activeStage = STAGES[0];
+            let nextStage = STAGES[1]; 
+
+            for (let i = 0; i < STAGES.length; i++) {
+                if (xp >= STAGES[i].threshold) {
+                    activeStage = STAGES[i];
+                    nextStage = STAGES[i + 1] || { name: "Max Level", threshold: xp }; 
+                }
+            }
+
+            // 2. Update Text & Icon
+            stageNameEl.innerText = activeStage.name;
+            stageDescEl.innerText = activeStage.desc;
+            plantDisplay.innerText = activeStage.icon;
+            currentLevelText.innerText = `Level ${activeStage.level}`;
+
+            // 3. Update Progress Bar
+            let progressPercent = 0;
+            if (nextStage.name !== "Max Level") {
+                const range = nextStage.threshold - activeStage.threshold;
+                const current = xp - activeStage.threshold;
+                progressPercent = Math.min((current / range) * 100, 100);
+                progressText.innerText = `${xp} / ${nextStage.threshold} XP`;
+                nextStageName.innerText = nextStage.name;
+            } else {
+                progressPercent = 100;
+                progressText.innerText = "Max Level Reached!";
+                nextStageName.innerText = "Complete";
+            }
+            
+            xpBar.style.width = `${progressPercent}%`;
+
+            // 4. Update Grid Cards Styling
+            STAGES.forEach(stage => {
+                const card = document.getElementById(`stage-card-${stage.level}`);
+                if(card) {
+                    card.className = "stage-card glass p-3 rounded-lg text-center flex flex-col items-center justify-center min-h-[100px]"; // reset
+                    
+                    if (stage.level <= activeStage.level) {
+                        card.classList.add('unlocked');
+                    }
+                    if (stage.level === activeStage.level) {
+                        card.classList.add('current');
+                    }
+                }
+            });
+        }
+
+        // --- Interaction: Water Button ---
+        waterBtn.addEventListener('click', () => {
+            // 1. Create Drop Element
+            const drop = document.createElement('div');
+            drop.innerHTML = '<i data-lucide="droplet"></i>'; // use icon or emoji
+            drop.innerText = "💧";
+            drop.classList.add('drop-animation');
+            
+            // Position randomly above plant
+            const plantRect = plantDisplay.getBoundingClientRect();
+            // Center roughly
+            drop.style.left = "50%"; 
+            drop.style.top = "30%"; 
+            
+            const container = plantDisplay.parentElement;
+            container.appendChild(drop);
+
+            // 2. Animate Plant
+            plantDisplay.style.transform = "scale(1.2) rotate(5deg)";
+            setTimeout(() => {
+                plantDisplay.style.transform = "scale(1) rotate(0deg)";
+            }, 300);
+
+            // 3. Force Sync (Updates points if user just finished a task in another tab)
+            if(currentUser) syncGardenStats(currentUser.uid);
+
+            // 4. Cleanup
+            setTimeout(() => {
+                drop.remove();
+            }, 1000);
+        });
+
+        // Initialize Lucide Icons initially
+        lucide.createIcons();
+
+    </script>
+</body>
+</html>
