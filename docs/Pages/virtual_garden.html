@@ -9,86 +9,31 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     
     <style>
-        body {
-            font-family: 'Roboto', sans-serif;
-            background-color: #0F2923;
-            color: #E0E0E0;
-            overflow-x: hidden;
-        }
+        body { font-family: 'Roboto', sans-serif; background-color: #0F2923; color: #E0E0E0; overflow-x: hidden; }
         .font-vt323 { font-family: 'VT323', monospace; }
-        
-        .glass {
-            background: rgba(69, 71, 74, 0.281);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
+        .glass { background: rgba(69, 71, 74, 0.281); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
 
         /* Plant Breathing Animation */
-        .plant-container {
-            transition: transform 0.5s ease-in-out;
-            animation: breathe 4s infinite ease-in-out;
-            display: inline-block;
-        }
-        @keyframes breathe {
-            0%, 100% { transform: scale(1) translateY(0); }
-            50% { transform: scale(1.05) translateY(-10px); }
-        }
+        .plant-container { transition: transform 0.5s ease-in-out; animation: breathe 4s infinite ease-in-out; display: inline-block; }
+        @keyframes breathe { 0%, 100% { transform: scale(1) translateY(0); } 50% { transform: scale(1.05) translateY(-10px); } }
 
         /* Evolution/Devolution Animation */
         .evolving { animation: evolveAnim 1.5s ease-in-out forwards; }
         .devolving { animation: devolveAnim 1.5s ease-in-out forwards; }
-
-        @keyframes evolveAnim {
-            0% { transform: scale(1) rotate(0deg); filter: brightness(1); }
-            50% { transform: scale(0.1) rotate(180deg); filter: brightness(2) drop-shadow(0 0 50px gold); }
-            100% { transform: scale(1.2) rotate(360deg); filter: brightness(1); }
-        }
-        @keyframes devolveAnim {
-            0% { transform: scale(1); filter: grayscale(0); }
-            50% { transform: scale(0.8) rotate(-10deg); filter: grayscale(1) brightness(0.5); }
-            100% { transform: scale(1) rotate(0deg); filter: grayscale(0); }
-        }
+        @keyframes evolveAnim { 0% { transform: scale(1) rotate(0deg); filter: brightness(1); } 50% { transform: scale(0.1) rotate(180deg); filter: brightness(2) drop-shadow(0 0 50px gold); } 100% { transform: scale(1.2) rotate(360deg); filter: brightness(1); } }
+        @keyframes devolveAnim { 0% { transform: scale(1); filter: grayscale(0); } 50% { transform: scale(0.8) rotate(-10deg); filter: grayscale(1) brightness(0.5); } 100% { transform: scale(1) rotate(0deg); filter: grayscale(0); } }
 
         /* Water Drop Animation */
-        .drop-animation {
-            position: absolute;
-            animation: dropFall 1s forwards;
-            opacity: 0;
-            pointer-events: none;
-            z-index: 50;
-            font-size: 3rem;
-            color: #60A5FA;
-        }
-        @keyframes dropFall {
-            0% { transform: translateY(-80px) scale(1); opacity: 1; }
-            50% { opacity: 1; }
-            100% { transform: translateY(0) scale(0.5); opacity: 0; }
-        }
+        .drop-animation { position: absolute; animation: dropFall 1s forwards; opacity: 0; pointer-events: none; z-index: 50; font-size: 3rem; color: #60A5FA; }
+        @keyframes dropFall { 0% { transform: translateY(-80px) scale(1); opacity: 1; } 50% { opacity: 1; } 100% { transform: translateY(0) scale(0.5); opacity: 0; } }
 
         /* XP Pop-up Animation */
-        .xp-popup {
-            position: absolute;
-            animation: floatUp 1.5s forwards;
-            font-weight: bold;
-            color: #FACC15; /* Yellow-400 */
-            pointer-events: none;
-            font-size: 1.5rem;
-            z-index: 60;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-        }
-        @keyframes floatUp {
-            0% { transform: translateY(0) scale(1); opacity: 1; }
-            100% { transform: translateY(-50px) scale(1.2); opacity: 0; }
-        }
+        .xp-popup { position: absolute; animation: floatUp 1.5s forwards; font-weight: bold; color: #FACC15; pointer-events: none; font-size: 1.5rem; z-index: 60; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 100% { transform: translateY(-50px) scale(1.2); opacity: 0; } }
 
         /* Progress Bar */
         .xp-bar-bg { background-color: #2E3338; }
-        .xp-bar-fill { 
-            background: linear-gradient(90deg, #4ADE80, #22c55e);
-            box-shadow: 0 0 15px rgba(74, 222, 128, 0.5);
-            transition: width 1s ease-in-out;
-        }
+        .xp-bar-fill { background: linear-gradient(90deg, #4ADE80, #22c55e); box-shadow: 0 0 15px rgba(74, 222, 128, 0.5); transition: width 1s ease-in-out; }
 
         /* Stage Cards */
         .stage-card { opacity: 0.4; filter: grayscale(0.8); transition: all 0.3s; border: 1px solid transparent; }
@@ -96,28 +41,11 @@
         .stage-card.current { transform: scale(1.05); border-color: #4ADE80; background: rgba(74, 222, 128, 0.15); box-shadow: 0 0 20px rgba(74, 222, 128, 0.1); }
 
         /* Evolution Button Style */
-        .evolve-btn {
-            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-            box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
-            border: 1px solid #FCD34D;
-            animation: pulse-gold 2s infinite;
-        }
-        @keyframes pulse-gold {
-            0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
-        }
+        .evolve-btn { background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); box-shadow: 0 0 20px rgba(245, 158, 11, 0.4); border: 1px solid #FCD34D; animation: pulse-gold 2s infinite; }
+        @keyframes pulse-gold { 0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0); } 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); } }
 
         /* Loader */
-        .loader {
-            border: 3px solid rgba(255,255,255,0.1);
-            border-top: 3px solid #4ADE80;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-        }
+        .loader { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #4ADE80; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; display: inline-block; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
@@ -143,7 +71,6 @@
     <div class="flex-1 flex flex-col lg:flex-row max-w-7xl mx-auto w-full p-4 md:p-8 gap-8 z-10 relative">
         
         <div class="lg:w-1/2 flex flex-col items-center justify-center relative min-h-[400px]">
-            
             <div class="relative w-full max-w-md aspect-square flex items-center justify-center">
                 <div class="absolute inset-0 bg-green-500/5 blur-[80px] rounded-full animate-pulse"></div>
                 <div id="plant-wrapper" class="relative z-10">
@@ -178,18 +105,15 @@
             
             <div class="glass p-6 rounded-2xl border-t border-white/10 relative overflow-hidden">
                 <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
-                
                 <div class="flex justify-between mb-3 font-vt323 text-2xl tracking-wide">
                     <span class="text-gray-200">Growth Progress</span>
                     <span id="progress-text" class="text-green-400">0 / 50 XP</span>
                 </div>
-                
                 <div class="w-full h-6 xp-bar-bg rounded-full overflow-hidden shadow-inner border border-white/5">
                     <div id="xp-progress-bar" class="h-full xp-bar-fill w-0 relative">
                         <div class="absolute inset-0 bg-white/10 w-full h-full animate-[shimmer_2s_infinite]"></div>
                     </div>
                 </div>
-                
                 <div class="mt-3 flex justify-between text-xs text-gray-400 font-mono">
                     <span>Current Level: <span id="current-level-text" class="text-white">1</span></span>
                     <span>Next: <span id="next-stage-name" class="text-green-300">Sprout</span></span>
@@ -200,41 +124,38 @@
                 <h3 class="text-lg font-bold mb-4 flex items-center gap-2 text-gray-200 border-b border-white/10 pb-2">
                     <i data-lucide="sprout" class="w-5 h-5 text-green-400"></i> Nutrient Breakdown
                 </h3>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-black/30 p-4 rounded-xl border border-white/5 hover:border-yellow-500/30 transition-colors group">
-                        <div class="text-gray-400 text-xs uppercase font-bold tracking-wider mb-1">Assignments</div>
-                        <div class="flex items-end justify-between">
-                            <div class="text-3xl font-bold text-yellow-400" id="stats-tasks">0</div>
-                            <i data-lucide="clipboard-check" class="w-6 h-6 text-gray-600 group-hover:text-yellow-400 transition-colors"></i>
-                        </div>
-                        <div class="text-[10px] text-gray-500 mt-1">+10 XP per task</div>
+                
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div class="bg-black/30 p-3 rounded-xl border border-white/5 hover:border-yellow-500/30 transition-colors">
+                        <div class="text-gray-400 text-[10px] uppercase font-bold mb-1">Assignments</div>
+                        <div class="text-2xl font-bold text-yellow-400" id="stats-tasks">0</div>
+                        <div class="text-[9px] text-gray-500">+10 XP ea</div>
                     </div>
 
-                    <div class="bg-black/30 p-4 rounded-xl border border-white/5 hover:border-pink-500/30 transition-colors group">
-                        <div class="text-gray-400 text-xs uppercase font-bold tracking-wider mb-1">Journaling</div>
-                        <div class="flex items-end justify-between">
-                            <div class="text-3xl font-bold text-pink-400" id="stats-journal">0</div>
-                            <i data-lucide="book-heart" class="w-6 h-6 text-gray-600 group-hover:text-pink-400 transition-colors"></i>
-                        </div>
-                        <div class="text-[10px] text-gray-500 mt-1">+15 XP per entry</div>
+                    <div class="bg-black/30 p-3 rounded-xl border border-white/5 hover:border-pink-500/30 transition-colors">
+                        <div class="text-gray-400 text-[10px] uppercase font-bold mb-1">Journaling</div>
+                        <div class="text-2xl font-bold text-pink-400" id="stats-journal">0</div>
+                        <div class="text-[9px] text-gray-500">+15 XP ea</div>
                     </div>
 
-                    <div class="bg-black/30 p-4 rounded-xl border border-white/5 hover:border-blue-500/30 transition-colors group">
-                        <div class="text-gray-400 text-xs uppercase font-bold tracking-wider mb-1">Screenings</div>
-                        <div class="flex items-end justify-between">
-                            <div class="text-3xl font-bold text-blue-400" id="stats-screening">0</div>
-                            <i data-lucide="activity" class="w-6 h-6 text-gray-600 group-hover:text-blue-400 transition-colors"></i>
-                        </div>
-                        <div class="text-[10px] text-gray-500 mt-1">+50 XP per check</div>
+                    <div class="bg-black/30 p-3 rounded-xl border border-white/5 hover:border-blue-500/30 transition-colors">
+                        <div class="text-gray-400 text-[10px] uppercase font-bold mb-1">Screenings</div>
+                        <div class="text-2xl font-bold text-blue-400" id="stats-screening">0</div>
+                        <div class="text-[9px] text-gray-500">+50 XP ea</div>
                     </div>
 
-                    <div class="bg-black/30 p-4 rounded-xl border border-white/5 hover:border-cyan-500/30 transition-colors group">
-                        <div class="text-gray-400 text-xs uppercase font-bold tracking-wider mb-1">Daily Care</div>
-                        <div class="flex items-end justify-between">
-                            <div class="text-3xl font-bold text-cyan-400" id="stats-watering">0</div>
-                            <i data-lucide="droplets" class="w-6 h-6 text-gray-600 group-hover:text-cyan-400 transition-colors"></i>
+                    <div class="bg-black/30 p-3 rounded-xl border border-white/5 hover:border-cyan-500/30 transition-colors">
+                        <div class="text-gray-400 text-[10px] uppercase font-bold mb-1">Daily Care</div>
+                        <div class="text-2xl font-bold text-cyan-400" id="stats-watering">0</div>
+                        <div class="text-[9px] text-gray-500">+20 XP daily</div>
+                    </div>
+
+                    <div class="bg-black/30 p-3 rounded-xl border border-white/5 hover:border-purple-500/30 transition-colors md:col-span-2">
+                        <div class="text-gray-400 text-[10px] uppercase font-bold mb-1 flex items-center gap-2">
+                            Mind Games <i data-lucide="gamepad-2" class="w-3 h-3 text-purple-400"></i>
                         </div>
-                        <div class="text-[10px] text-gray-500 mt-1">+20 XP daily</div>
+                        <div class="text-2xl font-bold text-purple-400" id="stats-game">0 XP</div>
+                        <div class="text-[9px] text-gray-500">+30 XP per win</div>
                     </div>
                 </div>
                 
@@ -319,6 +240,7 @@
         const statJournal = document.getElementById('stats-journal');
         const statScreening = document.getElementById('stats-screening');
         const statWatering = document.getElementById('stats-watering');
+        const statGame = document.getElementById('stats-game'); // NEW DOM Element
         const statTotalScore = document.getElementById('stats-total-score');
 
         const XP_RATES = { assignment: 10, journal: 15, screening: 50, watering: 20 };
@@ -336,6 +258,7 @@
         let userCurrentLevel = 1;
         let isReadyToEvolve = false;
         let userWateringXP = 0;
+        let userGameXP = 0; // NEW Variable
         let lastWateredDate = null;
 
         onAuthStateChanged(auth, async (user) => {
@@ -358,9 +281,9 @@
                         userProfileDisplay.textContent = data.profilePic || '👤';
                         userCurrentLevel = data.gardenLevel || 1;
                         userWateringXP = data.wateringXP || 0;
+                        userGameXP = data.gameXP || 0; // NEW: Read Game XP
                         lastWateredDate = data.lastWateredDate || null;
                         
-                        // Re-sync stats on profile update
                         syncGardenStats(uid); 
                     }
                 });
@@ -384,30 +307,24 @@
                 const countJ = journalSnap.size;
                 const countS = reportSnap.size;
 
-                // 1. Add this variable at the top with other let variables
-                let userGameXP = 0; // Add this
-
-                // 2. In loadUserProfile(), add this line inside the snapshot callback:
-                userGameXP = data.gameXP || 0; // Add this to read the new score
-
-                // 3. In syncGardenStats(), update the calculation:
+                // NEW: Added userGameXP to the sum
                 const calculatedXP = (countA * XP_RATES.assignment) + 
-                                    (countJ * XP_RATES.journal) + 
-                                    (countS * XP_RATES.screening) + 
-                                    userWateringXP + 
-                                    userGameXP; // <--- ADD THIS
-                                
+                                     (countJ * XP_RATES.journal) + 
+                                     (countS * XP_RATES.screening) + 
+                                     userWateringXP + 
+                                     userGameXP;
+                
                 currentXP = calculatedXP;
 
                 statTasks.innerText = countA;
                 statJournal.innerText = countJ;
                 statScreening.innerText = countS;
                 statWatering.innerText = userWateringXP;
+                statGame.innerText = `${userGameXP} XP`; // Update Game UI
                 statTotalScore.innerText = calculatedXP;
                 totalPointsDisplay.innerText = `${calculatedXP} XP`;
 
-                // --- NEW AUTO-DOWNGRADE LOGIC ---
-                // Calculate what level the user SHOULD be at based on max potential
+                // Auto-Downgrade Logic
                 let correctLevel = 1;
                 for (let i = STAGES.length - 1; i >= 0; i--) {
                     if (currentXP >= STAGES[i].threshold) {
@@ -416,20 +333,14 @@
                     }
                 }
 
-                // If user's stored level is higher than their XP allows (e.g. they deleted tasks), force downgrade
                 if (userCurrentLevel > correctLevel) {
                     console.log(`Downgrading level from ${userCurrentLevel} to ${correctLevel}`);
                     userCurrentLevel = correctLevel;
-                    
-                    // Save the lowered level to DB immediately
                     const docRef = doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${uid}`);
                     await setDoc(docRef, { gardenLevel: userCurrentLevel }, { merge: true });
-                    
-                    // Visual effect
                     plantDisplay.classList.add('devolving');
                     setTimeout(() => plantDisplay.classList.remove('devolving'), 1500);
                 }
-                // --- END AUTO-DOWNGRADE ---
 
                 updateGardenUI(currentXP);
 
@@ -555,18 +466,14 @@
             
             if (currentUser) {
                 const today = new Date().toDateString();
-                
                 if (lastWateredDate !== today) {
                     const docRef = doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${currentUser.uid}`);
-                    
                     try {
                         await setDoc(docRef, { 
                             wateringXP: increment(20),
                             lastWateredDate: today 
                         }, { merge: true });
-
                         showXPPopup("+20 XP!");
-                        
                     } catch (error) {
                         console.error("Failed to give daily bonus:", error);
                     }
