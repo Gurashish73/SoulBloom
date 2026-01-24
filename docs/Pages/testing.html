@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mentor Dashboard - Soul Bloom</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #134e25;
+            color: #e5e7eb;
+        }
+        .dark body {
+            background-color: #0c1a1e;
+        }
+        .font-playfair {
+            font-family: 'Playfair Display', serif;
+        }
+        /* Custom card styling */
+        .dashboard-card {
+            background-color: rgba(17, 24, 39, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        /* Animated Background Styles */
+        #garden-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+            background: linear-gradient(to bottom right, #051a14, #0c2e26);
+        }
+        .leaf {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22L6.66 19.7C7.14 18.45 7.93 17.37 8.95 16.54C10 15.64 11.22 15 12.5 15H17V12H12.5C11.54 12 10.64 11.73 9.84 11.23C9.04 10.73 8.36 10.05 7.85 9.24C7.05 7.94 6.75 6.45 7 5C7.25 3.55 8.06 2.22 9.24 1.28L10.47 2.5L9.5 3.47C9.06 3.91 8.72 4.45 8.5 5C8.25 5.55 8.12 6.16 8.12 6.79C8.12 7.41 8.25 8.03 8.5 8.5C8.72 9.05 9.06 9.59 9.5 10.03L10.47 11L17 11V8Z" fill="%2322c55e"/></svg>');
+            background-size: contain;
+            animation: float 25s infinite linear;
+            opacity: 0;
+        }
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.3; }
+            90% { opacity: 0.3; }
+            100% { transform: translateY(-10vh) rotate(720deg); opacity: 0; }
+        }
+        .loader {
+            border: 3px solid rgba(255,255,255,0.1);
+            border-radius: 50%;
+            border-top: 3px solid #4ade80;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="dark antialiased">
+    
+    <div id="garden-bg"></div>
+    
+    <header class="sticky top-0 z-50 w-full bg-gray-900/50 backdrop-blur-lg border-b border-white/10">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" class="text-3xl font-bold font-playfair text-green-400">
+                Soul Bloom <span class="text-xl text-gray-300 font-sans font-medium">| Mentor Dashboard</span>
+            </a>
+            <div class="flex items-center gap-4">
+                 <div class="flex items-center gap-2 text-sm text-gray-400 bg-gray-800/50 px-3 py-1 rounded-full border border-white/5">
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    Live Data
+                 </div>
+                 <a href="#" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-full transition-transform transform hover:scale-105">
+                     Logout
+                 </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-6 lg:p-8 relative z-10">
+        <h1 class="text-3xl font-bold text-white mb-2">Welcome, Dr. Evans</h1>
+        <p class="text-gray-400 mb-6">Here is the real-time overview of your student cohort's well-being.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="dashboard-card rounded-2xl p-6 flex flex-col justify-between">
+                <h3 class="text-lg font-semibold text-gray-300">Total Students</h3>
+                <div class="flex items-end gap-2">
+                    <p id="total-students" class="text-5xl font-bold text-green-400">--</p>
+                    <span class="text-sm text-gray-400 mb-2">registered</span>
+                </div>
+            </div>
+            <div class="dashboard-card rounded-2xl p-6 flex flex-col justify-between">
+                <h3 class="text-lg font-semibold text-gray-300">Reports (This Week)</h3>
+                <div class="flex items-end gap-2">
+                    <p id="weekly-reports" class="text-5xl font-bold text-blue-400">--</p>
+                    <span class="text-sm text-gray-400 mb-2">screenings</span>
+                </div>
+            </div>
+            <div class="dashboard-card rounded-2xl p-6 flex flex-col justify-between">
+                <h3 class="text-lg font-semibold text-gray-300">Avg. Stress Score</h3>
+                <div class="flex items-end gap-2">
+                    <p id="avg-mood-score" class="text-5xl font-bold text-yellow-400">--</p>
+                    <span class="text-2xl text-gray-400 mb-1">/ 10</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">Based on PHQ-9 & GAD-7</p>
+            </div>
+            <div class="dashboard-card rounded-2xl p-6 flex flex-col justify-between">
+                <h3 class="text-lg font-semibold text-gray-300">Active Alerts</h3>
+                <div class="flex items-end gap-2">
+                    <p id="active-alerts" class="text-5xl font-bold text-red-500">--</p>
+                    <span class="text-sm text-gray-400 mb-2">flags triggered</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 dashboard-card rounded-2xl p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold">Stress Level Trend (Last 6 Months)</h3>
+                    <span class="text-xs text-gray-400">Aggregated from Student Reports</span>
+                </div>
+                <div class="h-64 w-full">
+                    <canvas id="studentStatusLineChart"></canvas>
+                </div>
+            </div>
+            <div class="dashboard-card rounded-2xl p-6">
+                <h3 class="text-xl font-bold mb-4">Current Cohort Status</h3>
+                <div class="h-64 flex justify-center">
+                     <canvas id="studentStatusPieChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-8 dashboard-card rounded-2xl p-6">
+            <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <i data-lucide="alert-circle" class="text-red-400"></i>
+                Students Needing Attention
+            </h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full text-left">
+                    <thead class="border-b border-gray-600">
+                        <tr>
+                            <th class="py-3 px-4 text-gray-400 font-medium">Student Name (Anonymous)</th>
+                            <th class="py-3 px-4 text-gray-400 font-medium">Reason</th>
+                            <th class="py-3 px-4 text-gray-400 font-medium">Last Activity</th>
+                            <th class="py-3 px-4 text-gray-400 font-medium">Stress Score</th>
+                            <th class="py-3 px-4 text-gray-400 font-medium">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attention-table-body">
+                        <!-- Dynamic Content Will Load Here -->
+                        <tr>
+                            <td colspan="5" class="py-8 text-center text-gray-500">
+                                <div class="flex justify-center items-center gap-2">
+                                    <div class="loader"></div> Loading student data...
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, onSnapshot, where, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Configuration ---
+        const defaultFirebaseConfig = {
+            apiKey: "AIzaSyCOveO-NFW_X5FkINfh5KMgCBBMlOej8M4", // Using the key from student_dashboard
+            authDomain: "student-dashboard-4ec02.firebaseapp.com",
+            projectId: "student-dashboard-4ec02",
+            storageBucket: "student-dashboard-4ec02.firebasestorage.app",
+            messagingSenderId: "250478137189",
+            appId: "1:250478137189:web:224352f8e017b4194edb8c",
+            measurementId: "G-K159S6DZNP"
+        };
+        
+        // --- Helper Constants ---
+        // CRITICAL FIX: Use injected globals for Auth and App ID to prevent permission errors
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : defaultFirebaseConfig;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const sanitizedAppId = appId.replace(/\//g, '_');
+
+        // --- Init Firebase ---
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        // --- State ---
+        let studentsMap = {}; // Map userId -> profile data
+        let flagsMap = {};    // Map userId -> array of flags
+        let reportsList = []; // Array of all mental health reports
+
+        // --- Auth & Startup ---
+        // CRITICAL FIX: Prioritize __initial_auth_token for correct permissions
+        const initAuth = async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Authentication Error:", error);
+                // Fallback attempt
+                try { await signInAnonymously(auth); } catch (e) { console.error("Fallback Auth Failed", e); }
+            }
+        };
+
+        initAuth();
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log("Mentor authenticated as:", user.uid);
+                initDashboardData();
+            }
+        });
+
+        function initDashboardData() {
+            // 1. Listen to Profiles (for Student Count & Names)
+            // Using updated path with dynamic sanitizedAppId
+            const profilesRef = collection(db, `artifacts/${sanitizedAppId}/public/data/profiles`);
+            onSnapshot(profilesRef, (snapshot) => {
+                const count = snapshot.size;
+                animateValue("total-students", parseInt(document.getElementById("total-students").innerText) || 0, count, 1000);
+                
+                snapshot.forEach(doc => {
+                    studentsMap[doc.data().userId] = doc.data();
+                });
+                
+                updateAttentionTable(); // Refresh table when names load
+            }, (error) => {
+                console.error("Error fetching profiles:", error);
+            });
+
+            // 2. Listen to Flagged Users (for Alerts)
+            const flagsRef = collection(db, `artifacts/${sanitizedAppId}/public/data/flagged_users`);
+            onSnapshot(flagsRef, (snapshot) => {
+                const count = snapshot.size;
+                animateValue("active-alerts", parseInt(document.getElementById("active-alerts").innerText) || 0, count, 1000);
+                
+                flagsMap = {}; // Reset and rebuild
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (!flagsMap[data.userId]) flagsMap[data.userId] = [];
+                    flagsMap[data.userId].push(data);
+                });
+                updateAttentionTable();
+            }, (error) => {
+                console.error("Error fetching flags:", error);
+            });
+
+            // 3. Listen to Mental Health Reports (For Stats, Charts, and Table)
+            const reportsRef = collection(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports`);
+            const qReports = query(reportsRef, orderBy('createdAt', 'desc')); // Get latest first
+
+            onSnapshot(qReports, (snapshot) => {
+                reportsList = [];
+                let totalScore = 0;
+                let weeklyCount = 0;
+                const oneWeekAgo = new Date();
+                oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    data.jsDate = data.createdAt ? data.createdAt.toDate() : new Date();
+                    
+                    // Calculate normalized stress score (0-10)
+                    // PHQ9 max 27, GAD7 max 21. Total 48.
+                    const rawTotal = (data.phqScore || 0) + (data.gadScore || 0);
+                    data.normalizedScore = (rawTotal / 48) * 10;
+                    
+                    reportsList.push(data);
+                    totalScore += data.normalizedScore;
+
+                    if (data.jsDate > oneWeekAgo) {
+                        weeklyCount++;
+                    }
+                });
+
+                // Update Stats
+                const avgScore = reportsList.length ? (totalScore / reportsList.length).toFixed(1) : 0;
+                animateValue("weekly-reports", parseInt(document.getElementById("weekly-reports").innerText) || 0, weeklyCount, 1000);
+                
+                // Color code the avg score
+                const avgScoreEl = document.getElementById("avg-mood-score");
+                avgScoreEl.innerText = avgScore;
+                if(avgScore < 3) avgScoreEl.className = "text-5xl font-bold text-green-400";
+                else if(avgScore < 6) avgScoreEl.className = "text-5xl font-bold text-yellow-400";
+                else avgScoreEl.className = "text-5xl font-bold text-red-400";
+
+                updateCharts(reportsList);
+                updateAttentionTable();
+            }, (error) => {
+                console.error("Error fetching reports:", error);
+            });
+        }
+
+        // --- Core Logic: The Attention Table ---
+        function updateAttentionTable() {
+            const tableBody = document.getElementById('attention-table-body');
+            tableBody.innerHTML = '';
+
+            // Identify students who need attention
+            // Criteria: 1. Have a Flag, OR 2. Latest Stress Score > 5.0 (Struggling/Crisis)
+            
+            const studentsToDisplay = new Set();
+            
+            // Add flagged users
+            Object.keys(flagsMap).forEach(uid => studentsToDisplay.add(uid));
+
+            // Add high stress users
+            // First, map reports by user to get the LATEST one only
+            const latestReportsByUser = {};
+            reportsList.forEach(r => {
+                if (!latestReportsByUser[r.userId]) latestReportsByUser[r.userId] = r;
+            });
+
+            Object.values(latestReportsByUser).forEach(report => {
+                if (report.normalizedScore > 5.0) {
+                    studentsToDisplay.add(report.userId);
+                }
+            });
+
+            if (studentsToDisplay.size === 0) {
+                tableBody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-gray-500">No active alerts. The cohort is doing well! 🌿</td></tr>`;
+                return;
+            }
+
+            studentsToDisplay.forEach(uid => {
+                const profile = studentsMap[uid] || { name: 'Unknown User', profilePic: '👤' };
+                const flags = flagsMap[uid] || [];
+                const report = latestReportsByUser[uid];
+                
+                let statusBadge = '';
+                let reasonText = '';
+                let scoreDisplay = '-';
+
+                // Prioritize Flag as the reason
+                if (flags.length > 0) {
+                    statusBadge = `<span class="px-3 py-1 text-xs font-semibold rounded-full bg-red-500/30 text-red-300 border border-red-500/50">Safety Flag</span>`;
+                    reasonText = `Flagged content detected (${flags.length})`;
+                } else if (report) {
+                    if (report.normalizedScore > 7.5) {
+                        statusBadge = `<span class="px-3 py-1 text-xs font-semibold rounded-full bg-red-500/30 text-red-300">In Crisis</span>`;
+                        reasonText = "High screening score";
+                    } else {
+                        statusBadge = `<span class="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-500/30 text-yellow-300">Struggling</span>`;
+                        reasonText = "Elevated anxiety/depression";
+                    }
+                }
+
+                if (report) {
+                    scoreDisplay = `<span class="${report.normalizedScore > 6 ? 'text-red-400' : 'text-yellow-400'} font-bold">${report.normalizedScore.toFixed(1)}</span> / 10`;
+                }
+
+                const lastActive = report ? timeAgo(report.jsDate) : 'Unknown';
+
+                const row = document.createElement('tr');
+                row.className = 'border-b border-gray-700 hover:bg-white/5 transition-colors';
+                row.innerHTML = `
+                    <td class="py-3 px-4 flex items-center gap-3">
+                        <span class="text-2xl">${profile.profilePic}</span>
+                        <span class="font-medium text-white">${profile.name}</span>
+                    </td>
+                    <td class="py-3 px-4 text-gray-300">${reasonText}</td>
+                    <td class="py-3 px-4 text-gray-400 text-sm">${lastActive}</td>
+                    <td class="py-3 px-4">${statusBadge}</td>
+                    <td class="py-3 px-4">
+                        <button class="text-sm font-bold text-green-400 hover:text-green-300 hover:underline">View Profile</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // --- Chart Logic ---
+        let lineChartInstance = null;
+        let pieChartInstance = null;
+
+        function updateCharts(reports) {
+            // 1. Line Chart Data Preparation (Group by Month)
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthlySums = new Array(12).fill(0);
+            const monthlyCounts = new Array(12).fill(0);
+
+            reports.forEach(r => {
+                const monthIdx = r.jsDate.getMonth();
+                monthlySums[monthIdx] += r.normalizedScore;
+                monthlyCounts[monthIdx]++;
+            });
+
+            const labels = [];
+            const dataPoints = [];
+            
+            // Generate chart data for the current year up to now
+            const currentMonth = new Date().getMonth();
+            for (let i = 0; i <= currentMonth; i++) {
+                labels.push(months[i]);
+                dataPoints.push(monthlyCounts[i] ? (monthlySums[i] / monthlyCounts[i]).toFixed(1) : null); // null for gaps
+            }
+
+            // Render Line Chart
+            const lineCtx = document.getElementById('studentStatusLineChart').getContext('2d');
+            if (lineChartInstance) lineChartInstance.destroy();
+
+            lineChartInstance = new Chart(lineCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Average Stress Score (0-10)',
+                        data: dataPoints,
+                        borderColor: '#4ade80',
+                        backgroundColor: 'rgba(74, 222, 128, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#4ade80',
+                        spanGaps: true 
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#9ca3af' } } },
+                    scales: {
+                        y: { beginAtZero: true, max: 10, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#9ca3af' } },
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#9ca3af' } }
+                    }
+                }
+            });
+
+            // 2. Pie Chart Data Preparation (Categories based on Latest Report per Student)
+            const latestReports = {};
+            reports.forEach(r => {
+                // Since reports are ordered desc, first one we see is the latest
+                if(!latestReports[r.userId]) latestReports[r.userId] = r;
+            });
+
+            let stats = { thriving: 0, stable: 0, struggling: 0, crisis: 0 };
+            
+            Object.values(latestReports).forEach(r => {
+                const s = r.normalizedScore;
+                if(s < 2.5) stats.thriving++;
+                else if(s < 5.0) stats.stable++;
+                else if(s < 7.5) stats.struggling++;
+                else stats.crisis++;
+            });
+
+            // Render Pie Chart
+            const pieCtx = document.getElementById('studentStatusPieChart').getContext('2d');
+            if (pieChartInstance) pieChartInstance.destroy();
+
+            pieChartInstance = new Chart(pieCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Thriving', 'Stable', 'Struggling', 'In Crisis'],
+                    datasets: [{
+                        data: [stats.thriving, stats.stable, stats.struggling, stats.crisis],
+                        backgroundColor: [
+                            'rgba(34, 197, 94, 0.8)',  // Thriving (Green)
+                            'rgba(59, 130, 246, 0.8)',  // Stable (Blue)
+                            'rgba(234, 179, 8, 0.8)',   // Struggling (Yellow)
+                            'rgba(239, 68, 68, 0.8)'    // Crisis (Red)
+                        ],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#d1d5db', padding: 20 } }
+                    }
+                }
+            });
+        }
+
+        // --- Utilities ---
+        function animateValue(id, start, end, duration) {
+            if (start === end) return;
+            const obj = document.getElementById(id);
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.innerHTML = Math.floor(progress * (end - start) + start);
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        function timeAgo(date) {
+            const seconds = Math.floor((new Date() - date) / 1000);
+            let interval = seconds / 31536000;
+            if (interval > 1) return Math.floor(interval) + " years ago";
+            interval = seconds / 2592000;
+            if (interval > 1) return Math.floor(interval) + " months ago";
+            interval = seconds / 86400;
+            if (interval > 1) return Math.floor(interval) + " days ago";
+            interval = seconds / 3600;
+            if (interval > 1) return Math.floor(interval) + " hrs ago";
+            interval = seconds / 60;
+            if (interval > 1) return Math.floor(interval) + " mins ago";
+            return "Just now";
+        }
+        
+        // --- Effects ---
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            
+            // Garden BG Animation logic (Visuals only)
+            const gardenBg = document.getElementById('garden-bg');
+            for (let i = 0; i < 15; i++) {
+                const leaf = document.createElement('div');
+                leaf.className = 'leaf';
+                leaf.style.left = `${Math.random() * 100}vw`;
+                leaf.style.animationDuration = `${15 + Math.random() * 20}s`;
+                leaf.style.animationDelay = `${Math.random() * 10}s`;
+                leaf.style.transform = `scale(${0.5 + Math.random() * 0.8})`;
+                gardenBg.appendChild(leaf);
+            }
+        });
+    </script>
+</body>
+</html>

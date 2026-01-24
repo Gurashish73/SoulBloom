@@ -13,3 +13,8 @@ def root():
 
 # to start database
 # ./mongod --dbpath D:\soulbloom\db
+
+
+
+
+
