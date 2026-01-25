@@ -103,13 +103,18 @@
                         <p id="appt-msg" class="text-[10px] text-green-400 mt-1 hidden">Slot Added!</p>
                     </div>
                     <div>
-                        <label class="text-xs text-purple-300 block mb-1 font-bold">Add Resource Link</label>
+                        <label class="text-xs text-purple-300 block mb-1 font-bold">Manage Resources</label>
                         <input type="text" id="res-title" placeholder="Title" class="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-white mb-2 focus:outline-none focus:border-purple-500">
-                        <div class="flex gap-2">
+                        <div class="flex gap-2 mb-3">
                             <input type="text" id="res-url" placeholder="https://..." class="w-full bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-purple-500">
                             <button onclick="addResource()" class="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded text-xs font-bold transition">Add</button>
                         </div>
                         <p id="res-msg" class="text-[10px] text-green-400 mt-1 hidden">Resource Added!</p>
+                        
+                        <div class="text-xs text-gray-400 uppercase font-bold mb-2 mt-4 border-t border-white/10 pt-2">Current Resources</div>
+                        <div id="resources-list" class="space-y-2 max-h-32 overflow-y-auto pr-1">
+                            <p class="text-[10px] text-gray-600 italic">Loading...</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -176,7 +181,7 @@
                     <button onclick="performAction('book')" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded text-sm font-bold transition">Confirm Booking</button>
                 </div>
                 <button onclick="performAction('resolve')" class="w-full flex items-center justify-between p-4 rounded-xl bg-gray-800 hover:bg-green-900/30 border border-white/10 hover:border-green-500/50 transition-all group">
-                    <div class="flex items-center gap-3"><div class="p-2 bg-green-500/20 rounded-lg text-green-400"><i data-lucide="check-circle-2" class="w-5 h-5"></i></div><div class="text-left"><div class="font-bold text-gray-200 group-hover:text-green-300">Mark as Resolved</div><div class="text-xs text-gray-500 group-hover:text-green-400/70">Archive this alert</div></div></div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-600 group-hover:text-white"></i>
+                    <div class="flex items-center gap-3"><div class="p-2 bg-green-500/20 rounded-lg text-green-400"><i data-lucide="check-circle-2" class="w-5 h-5"></i></div><div class="text-left"><div class="font-bold text-gray-200 group-hover:text-green-300">Mark as Resolved</div><div class="text-xs text-gray-500 group-hover:text-green-400/70">Archive & Remove from Stats</div></div></div><i data-lucide="chevron-right" class="w-4 h-4 text-gray-600 group-hover:text-white"></i>
                 </button>
             </div>
             <button onclick="closeResolveModal()" class="mt-6 w-full py-2 text-sm text-gray-500 hover:text-white transition">Cancel</button>
@@ -199,7 +204,7 @@
     </div>
 
     <script type="module">
-        import { getFirestore, doc, collection, query, onSnapshot, getDocs, where, addDoc, deleteDoc, updateDoc, serverTimestamp, orderBy, limit, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, collection, query, onSnapshot, getDocs, where, addDoc, deleteDoc, updateDoc, getDoc, serverTimestamp, orderBy, limit, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
@@ -222,7 +227,7 @@
 
         // GLOBALS
         let allReports = []; 
-        let allFlags = []; // CACHE FOR FILTERING
+        let allFlags = []; 
         let currentFlagId = null;
         let currentStudentId = null;
         let currentRescheduleId = null; 
@@ -230,13 +235,7 @@
         // --- INIT FLATPICKR ---
         document.addEventListener('DOMContentLoaded', () => {
             const commonConfig = {
-                enableTime: true,
-                dateFormat: "Y-m-d H:i",
-                minDate: "today",
-                time_24hr: false,
-                allowInput: true, 
-                clickOpens: false, 
-                wrap: true        
+                enableTime: true, dateFormat: "Y-m-d H:i", minDate: "today", time_24hr: false, allowInput: true, clickOpens: false, wrap: true        
             };
             const fp1 = flatpickr(".flatpickr-wrapper", commonConfig);
             const fp2 = flatpickr(".priority-picker", commonConfig);
@@ -272,9 +271,10 @@
                 const reportsRef = collection(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports`);
                 onSnapshot(reportsRef, (snapshot) => {
                     allReports = [];
-                    snapshot.forEach(doc => allReports.push(doc.data()));
+                    snapshot.forEach(doc => allReports.push({ id: doc.id, ...doc.data() })); 
                     const currentFilter = document.getElementById('time-filter').value;
                     filterAnalytics(currentFilter);
+                    window.renderFlags(); 
                 });
             } catch (e) { console.error("Analytics Error:", e); }
         }
@@ -295,6 +295,7 @@
 
             const filteredData = allReports.filter(r => {
                 if (!r.createdAt) return false;
+                if (r.createdAt === null) return true;
                 const rDate = r.createdAt.toDate ? r.createdAt.toDate() : new Date(r.createdAt);
                 return rDate >= cutoffDate;
             });
@@ -352,16 +353,14 @@
             });
         }
 
-        // --- 3. FLAGGED USERS (WITH PRIORITY FILTER) ---
+        // --- 3. FLAGGED USERS ---
         function listenForFlags() {
             const flagsRef = collection(db, `artifacts/${sanitizedAppId}/public/data/flagged_users`);
-            const q = query(flagsRef, limit(30)); // Fetch enough to filter
+            const q = query(flagsRef, orderBy('timestamp', 'desc'), limit(30)); 
             onSnapshot(q, (snapshot) => {
                 allFlags = [];
                 snapshot.forEach(doc => allFlags.push({ id: doc.id, ...doc.data() }));
-                // Sort by date desc
-                allFlags.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
-                window.renderFlags(); // Initial Render
+                window.renderFlags();
             });
         }
 
@@ -369,8 +368,28 @@
             const tbody = document.getElementById('flagged-table-body');
             const filterVal = document.getElementById('flag-filter').value;
             
-            // Client-side Filter
-            const filtered = allFlags.filter(f => {
+            // Critical Reports converted to Flags (Filter out reports marked isGraphOnly)
+            const criticalReports = allReports
+                .filter(r => (r.phqScore >= 15 || r.gadScore >= 15) && !r.isGraphOnly) 
+                .map(r => ({
+                    id: 'screen_' + r.id, 
+                    userId: r.userId,
+                    priority: 'high',
+                    message: `CRITICAL SCREENING: PHQ-9: ${r.phqScore}, GAD-7: ${r.gadScore}`,
+                    timestamp: r.createdAt,
+                    isReport: true,
+                    realReportId: r.id
+                }));
+
+            let combinedData = [...allFlags, ...criticalReports];
+
+            combinedData.sort((a, b) => {
+                const timeA = a.timestamp?.seconds || (a.timestamp?.toDate ? a.timestamp.toDate().getTime()/1000 : 0);
+                const timeB = b.timestamp?.seconds || (b.timestamp?.toDate ? b.timestamp.toDate().getTime()/1000 : 0);
+                return timeB - timeA;
+            });
+
+            const filtered = combinedData.filter(f => {
                 if (filterVal === 'all') return true;
                 return f.priority === filterVal;
             });
@@ -384,9 +403,10 @@
 
             let html = '';
             filtered.forEach(d => {
-                const date = d.timestamp?.toDate ? d.timestamp.toDate().toLocaleString() : 'Just now';
+                let dateStr = 'Just now';
+                if (d.timestamp?.toDate) dateStr = d.timestamp.toDate().toLocaleString();
+                else if (d.timestamp instanceof Date) dateStr = d.timestamp.toLocaleString();
                 
-                // DOT LOGIC
                 let dotColor = 'bg-gray-500';
                 if(d.priority === 'high') dotColor = 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]';
                 else if(d.priority === 'medium') dotColor = 'bg-orange-500';
@@ -395,8 +415,8 @@
                 html += `
                     <tr class="hover:bg-white/5 transition border-b border-white/5" id="row-${d.id}">
                         <td class="px-4 py-3"><div class="w-3 h-3 rounded-full ${dotColor} mx-auto" title="Priority: ${d.priority}"></div></td>
-                        <td class="px-4 py-3 text-gray-400 font-mono text-xs">${date}</td>
-                        <td class="px-4 py-3 font-mono text-xs text-blue-300">${d.userId.substring(0,8)}...</td>
+                        <td class="px-4 py-3 text-gray-400 font-mono text-xs">${dateStr}</td>
+                        <td class="px-4 py-3 font-mono text-xs text-blue-300">${d.userId ? d.userId.substring(0,8) : 'Unknown'}...</td>
                         <td class="px-4 py-3 text-gray-200 italic">"${d.message}"</td>
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-2">
@@ -418,9 +438,7 @@
                 const appts = [];
                 snapshot.forEach(doc => appts.push({ id: doc.id, ...doc.data() }));
                 appts.sort((a, b) => (a.startTime?.seconds || 0) - (b.startTime?.seconds || 0));
-                
                 if (appts.length === 0) { list.innerHTML = `<p class="text-gray-500 text-xs text-center py-4">No sessions scheduled.</p>`; return; }
-
                 list.innerHTML = '';
                 appts.forEach(a => {
                     const date = a.startTime?.toDate ? a.startTime.toDate() : new Date();
@@ -428,7 +446,6 @@
                     const isBooked = a.status === 'booked';
                     const borderClass = isPriority ? 'border-l-4 border-red-500' : (isBooked ? 'border-l-4 border-blue-500' : 'border-l-4 border-gray-500');
                     const statusText = isPriority ? 'Priority Session' : (isBooked ? 'Booked' : 'Open Slot');
-                    
                     const div = document.createElement('div');
                     div.className = `p-3 bg-white/5 rounded ${borderClass} flex justify-between items-center group relative`;
                     div.innerHTML = `<div><div class="text-sm font-bold text-gray-200">${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div><div class="text-xs text-gray-400">${statusText}</div></div><div class="flex items-center gap-2">${isBooked ? `<div class="bg-gray-700 px-2 py-1 rounded text-xs text-gray-300 font-mono">${a.studentId ? a.studentId.substring(0,4) : 'User'}</div>` : ''}<div class="flex gap-1 ml-2"><button onclick="window.rescheduleAppt('${a.id}')" title="Reschedule" class="p-1 text-gray-500 hover:text-blue-400 transition"><i data-lucide="clock" class="w-4 h-4"></i></button><button onclick="window.cancelAppt('${a.id}')" title="Cancel" class="p-1 text-gray-500 hover:text-red-400 transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></div>`;
@@ -437,32 +454,14 @@
                 lucide.createIcons();
             });
         }
-
-        // --- NEW: RESCHEDULE LOGIC (Replaces Prompt) ---
-        window.rescheduleAppt = (id) => {
-            currentRescheduleId = id;
-            document.getElementById('reschedule-modal').classList.remove('hidden');
-        };
-
+        
+        window.rescheduleAppt = (id) => { currentRescheduleId = id; document.getElementById('reschedule-modal').classList.remove('hidden'); };
         window.confirmReschedule = async () => {
             const dateInput = document.getElementById('reschedule-date-input').value;
             if(!dateInput || !currentRescheduleId) return alert("Select a time.");
-            
-            try {
-                await updateDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/appointments/${currentRescheduleId}`), {
-                    startTime: new Date(dateInput)
-                });
-                document.getElementById('reschedule-modal').classList.add('hidden');
-                currentRescheduleId = null;
-            } catch(e) { console.error(e); alert("Error rescheduling"); }
+            try { await updateDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/appointments/${currentRescheduleId}`), { startTime: new Date(dateInput) }); document.getElementById('reschedule-modal').classList.add('hidden'); currentRescheduleId = null; } catch(e) { console.error(e); alert("Error rescheduling"); }
         };
-
-        window.cancelAppt = async (id) => {
-            if(!confirm("Cancel this session?")) return;
-            try {
-                await deleteDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/appointments/${id}`));
-            } catch(e) { console.error(e); alert("Error deleting"); }
-        }
+        window.cancelAppt = async (id) => { if(!confirm("Cancel this session?")) return; try { await deleteDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/appointments/${id}`)); } catch(e) { console.error(e); alert("Error deleting"); } }
 
         // --- 5. VIEW REPORT ---
         window.checkReport = async (userId) => {
@@ -491,27 +490,15 @@
             document.getElementById('resolve-modal').classList.remove('hidden');
             document.getElementById('booking-input-area').classList.add('hidden');
         };
-
-        window.closeResolveModal = () => {
-            document.getElementById('resolve-modal').classList.add('hidden');
-            currentFlagId = null;
-            currentStudentId = null;
-        };
-
-        window.toggleBookingInput = () => {
-            const area = document.getElementById('booking-input-area');
-            area.classList.toggle('hidden');
-        };
+        window.closeResolveModal = () => { document.getElementById('resolve-modal').classList.add('hidden'); currentFlagId = null; currentStudentId = null; };
+        window.toggleBookingInput = () => { document.getElementById('booking-input-area').classList.toggle('hidden'); };
 
         window.performAction = async (actionType) => {
             if (!currentStudentId || !currentFlagId) return;
             try {
                 if (actionType === 'remind') {
                     await addDoc(collection(db, `artifacts/${sanitizedAppId}/users/${currentStudentId}/notifications`), {
-                        title: "Wellness Check-in",
-                        message: "Dr. Evans noticed you might be stressed. Please fill out your journal today.",
-                        type: "reminder",
-                        createdAt: serverTimestamp()
+                        title: "Wellness Check-in", message: "Dr. Evans noticed you might be stressed. Please fill out your journal today.", type: "reminder", createdAt: serverTimestamp()
                     });
                     alert("Notification Sent!");
                     window.closeResolveModal();
@@ -519,35 +506,64 @@
                     const dateInput = document.getElementById('priority-date-input').value;
                     if(!dateInput) { alert("Please select a date/time."); return; }
                     await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/appointments`), {
-                        startTime: new Date(dateInput),
-                        status: 'booked',
-                        mentorName: "Dr. Evans (Priority)",
-                        studentId: currentStudentId,
-                        createdAt: serverTimestamp()
+                        startTime: new Date(dateInput), status: 'booked', mentorName: "Dr. Evans (Priority)", studentId: currentStudentId, createdAt: serverTimestamp()
                     });
                     alert("Priority Session Booked!");
                     window.closeResolveModal();
                 } else if (actionType === 'resolve') {
-                    await deleteDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/flagged_users/${currentFlagId}`));
-                    const row = document.getElementById(`row-${currentFlagId}`);
-                    if (row) row.remove();
+                    // --- CORRECTED LOGIC: Check for linked reports to ensure deletion updates the graph ---
+                    if (currentFlagId.startsWith('screen_')) {
+                        // High Priority (Auto-Flag)
+                        const realReportId = currentFlagId.split('screen_')[1];
+                        await deleteDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports/${realReportId}`));
+                    } else {
+                        // Medium/Low Priority (Manual Flag)
+                        // 1. Get flag to check for linkedReportId
+                        const flagRef = doc(db, `artifacts/${sanitizedAppId}/public/data/flagged_users/${currentFlagId}`);
+                        const flagSnap = await getDoc(flagRef);
+                        
+                        if (flagSnap.exists() && flagSnap.data().linkedReportId) {
+                            // 2. Delete the linked report (updates graph)
+                            await deleteDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports/${flagSnap.data().linkedReportId}`));
+                        }
+                        
+                        // 3. Delete the flag itself
+                        await deleteDoc(flagRef);
+                    }
+                    alert("Alert Resolved & Removed from Stats.");
                     window.closeResolveModal();
                 }
             } catch (e) { console.error("Action Error:", e); alert("Action Failed: " + e.message); }
         };
 
-        // --- 7. OTHER ACTIONS ---
-        window.addAppointmentSlot = async () => {
-            const dateVal = document.getElementById('appt-date').value;
-            if(!dateVal) return alert("Select a date/time");
-            try {
-                await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/appointments`), {
-                    startTime: new Date(dateVal), status: 'open', mentorName: "Dr. Evans", createdAt: serverTimestamp()
+        // --- 7. RESOURCES ---
+        function listenForResources() {
+            const resRef = collection(db, `artifacts/${sanitizedAppId}/public/data/resources`);
+            onSnapshot(query(resRef, orderBy('createdAt', 'desc')), (snapshot) => {
+                const list = document.getElementById('resources-list');
+                const items = [];
+                snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
+                
+                if (items.length === 0) { list.innerHTML = `<p class="text-[10px] text-gray-600 italic">No resources yet.</p>`; return; }
+
+                list.innerHTML = '';
+                items.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = "flex justify-between items-center bg-white/5 p-2 rounded border border-white/5";
+                    div.innerHTML = `
+                        <div class="overflow-hidden">
+                            <div class="text-xs text-purple-300 font-bold truncate">${item.title}</div>
+                            <div class="text-[10px] text-gray-500 truncate">${item.url}</div>
+                        </div>
+                        <button onclick="window.deleteResource('${item.id}')" class="text-gray-600 hover:text-red-500 transition ml-2">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i>
+                        </button>
+                    `;
+                    list.appendChild(div);
                 });
-                document.getElementById('appt-date').value = '';
-                const msg = document.getElementById('appt-msg'); msg.classList.remove('hidden'); setTimeout(() => msg.classList.add('hidden'), 2000);
-            } catch(e) { console.error(e); alert("Error creating slot"); }
-        };
+                lucide.createIcons();
+            });
+        }
 
         window.addResource = async () => {
             const title = document.getElementById('res-title').value;
@@ -562,9 +578,26 @@
             } catch(e) { console.error(e); alert("Error adding resource"); }
         };
 
-        window.resolveFlag = async (id) => { document.getElementById(`row-${id}`).style.opacity = '0.3'; }
+        window.deleteResource = async (id) => {
+            if(!confirm("Remove this resource link?")) return;
+            try {
+                await deleteDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/resources/${id}`));
+            } catch(e) { console.error(e); alert("Error removing resource"); }
+        };
 
-        // --- SIMULATION (Randomized Priority) ---
+        window.addAppointmentSlot = async () => {
+            const dateVal = document.getElementById('appt-date').value;
+            if(!dateVal) return alert("Select a date/time");
+            try {
+                await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/appointments`), {
+                    startTime: new Date(dateVal), status: 'open', mentorName: "Dr. Evans", createdAt: serverTimestamp()
+                });
+                document.getElementById('appt-date').value = '';
+                const msg = document.getElementById('appt-msg'); msg.classList.remove('hidden'); setTimeout(() => msg.classList.add('hidden'), 2000);
+            } catch(e) { console.error(e); alert("Error creating slot"); }
+        };
+
+        // --- CORRECTED SIMULATE LOGIC (Links Report to Flag) ---
         window.simulateFlag = async () => {
             const severities = [
                 { type: 'Critical', priority: 'high', phq: 22, gad: 19, msg: "I can't take this anymore. Everything is too much." },
@@ -574,11 +607,29 @@
             const scenario = severities[Math.floor(Math.random() * severities.length)];
             const mockUserId = "test-user-" + Math.floor(Math.random()*1000);
             try {
-                await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/flagged_users`), { userId: mockUserId, message: scenario.msg, priority: scenario.priority, timestamp: serverTimestamp() });
-                await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports`), { userId: mockUserId, phqScore: scenario.phq, gadScore: scenario.gad, report: `Auto-generated report for ${scenario.type} simulated alert.`, createdAt: serverTimestamp() });
+                // 1. Create Report (Always, so graph updates)
+                const reportRef = await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports`), { 
+                    userId: mockUserId, 
+                    phqScore: scenario.phq, 
+                    gadScore: scenario.gad, 
+                    report: `Auto-generated report for ${scenario.type} simulated alert.`, 
+                    createdAt: serverTimestamp()
+                });
+
+                // 2. If Low/Medium, Create Manual Flag AND Link it to the Report
+                if (scenario.priority !== 'high') {
+                    await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/flagged_users`), { 
+                        userId: mockUserId, 
+                        message: scenario.msg, 
+                        priority: scenario.priority, 
+                        timestamp: serverTimestamp(),
+                        linkedReportId: reportRef.id // <--- THIS LINK IS CRITICAL
+                    });
+                }
             } catch(e) { console.error(e); }
         };
 
+        // --- UPDATED SIMULATE GRAPH DATA LOGIC (Hides from Alerts) ---
         window.simulateGraphData = async () => {
             const batchSize = 30;
             const reportsRef = collection(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports`);
@@ -592,7 +643,14 @@
                 const date = new Date();
                 date.setDate(date.getDate() - Math.floor(Math.random() * 30));
                 try {
-                    await addDoc(reportsRef, { userId: `mock-student-${Math.floor(Math.random() * 9000)}`, phqScore: phq, gadScore: gad, report: "Simulated Data for Demo purposes.", createdAt: Timestamp.fromDate(date) });
+                    await addDoc(reportsRef, { 
+                        userId: `mock-student-${Math.floor(Math.random() * 9000)}`, 
+                        phqScore: phq, 
+                        gadScore: gad, 
+                        report: "Simulated Data for Demo purposes.", 
+                        createdAt: Timestamp.fromDate(date),
+                        isGraphOnly: true 
+                    });
                 } catch(e) { console.log("Simulate error", e); }
             }
         };
@@ -610,16 +668,16 @@
                 const deleteReportPromises = snapReports.docs.map(doc => deleteDoc(doc.ref));
                 await Promise.all(deleteReportPromises);
 
+                const qTest = query(reportsRef, where("userId", ">=", "test-user-"), where("userId", "<=", "test-user-\uf8ff"));
+                const snapTest = await getDocs(qTest);
+                const deleteTestPromises = snapTest.docs.map(doc => deleteDoc(doc.ref));
+                await Promise.all(deleteTestPromises);
+
                 const alertsRef = collection(db, `artifacts/${sanitizedAppId}/public/data/flagged_users`);
                 const qAlerts = query(alertsRef, where("userId", ">=", "test-user-"), where("userId", "<=", "test-user-\uf8ff"));
                 const snapAlerts = await getDocs(qAlerts);
                 const deleteAlertPromises = snapAlerts.docs.map(doc => deleteDoc(doc.ref));
                 await Promise.all(deleteAlertPromises);
-
-                const qReports2 = query(reportsRef, where("userId", ">=", "test-user-"), where("userId", "<=", "test-user-\uf8ff"));
-                const snapReports2 = await getDocs(qReports2);
-                const deleteReport2Promises = snapReports2.docs.map(doc => deleteDoc(doc.ref));
-                await Promise.all(deleteReport2Promises);
 
                 alert(`Cleared data!`);
                 allReports = []; 
@@ -635,6 +693,7 @@
                 fetchAnalytics(); 
                 listenForFlags(); 
                 listenForAppointments();
+                listenForResources();
                 const bg = document.getElementById('garden-bg'); for(let i=0; i<15; i++) { const leaf = document.createElement('div'); leaf.className = 'leaf'; leaf.style.left = Math.random() * 100 + 'vw'; leaf.style.animationDuration = (15 + Math.random() * 15) + 's'; leaf.style.animationDelay = (Math.random() * 10) + 's'; bg.appendChild(leaf); } 
             } else { signInAnonymously(auth).catch(e => console.error(e)); } 
         });
