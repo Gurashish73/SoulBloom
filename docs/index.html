@@ -65,21 +65,18 @@
             100% { transform: translateY(-10vh) rotate(720deg); opacity: 0; }
         }
 
-        /* Glassmorphism effect - UPDATED FOR LIGHT MODE FIX */
+        /* Glassmorphism effect */
         .glass-card {
-            background: rgba(255, 255, 255, 0.75); /* More opaque in light mode for readability */
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(0, 0, 0, 0.05); /* Subtle dark border for light mode */
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
         
-        /* Dark Mode Glass - KEPT EXACTLY SAME AS BEFORE */
         .dark .glass-card {
             color: white;
             background: rgba(41, 128, 61, 0.2);
             border: 1px solid rgba(102, 90, 90, 0.1);
-            box-shadow: none;
         }
 
         /* Scrollbar styles */
@@ -255,10 +252,10 @@
                 Soul Bloom
             </a>
             <nav class="hidden md:flex items-center space-x-8">
-                <a href="#features" class="text-gray-900 dark:text-gray-50 hover:text-green-600 dark:hover:text-green-300 transition font-medium">Features</a>
-                <a href="#your-garden" class="text-gray-900 dark:text-gray-50 hover:text-green-600 dark:hover:text-green-300 transition font-medium">Your Garden</a>
-                <a href="#mission" class="text-gray-900 dark:text-gray-50 hover:text-green-600 dark:hover:text-green-300 transition font-medium">Our Mission</a>
-                <a href="#support" class="text-gray-900 dark:text-gray-50 hover:text-green-600 dark:hover:text-green-300 transition font-medium">Peer Support</a>
+                <a href="#features" class="text-gray-900 dark:text-gray-50 hover:text-green-600 dark:hover:text-green-300 transition">Features</a>
+                <a href="#your-garden" class="text-gray-900 dark:text-gray-50 hover:text-green-600 dark:hover:text-green-300 transition">Your Garden</a>
+                <a href="#mission" class="text-gray-900 dark:text-gray-50 hover:text-green-600 dark:hover:text-green-300 transition">Our Mission</a>
+                <a href="#support" class="text-gray-900 dark:text-gray-50 hover:text-green-600 dark:hover:text-green-300 transition">Peer Support</a>
             </nav>
             <div class="flex items-center space-x-4">
                 <button id="theme-toggle" class="p-2 rounded-full text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500">
@@ -288,7 +285,7 @@
                         Let Your Soul Bloom.
                     </span>
                 </h1>
-                <p class="text-lg text-gray-800 dark:text-gray-400 max-w-3xl mx-auto mb-8 leading-relaxed">
+                <p class="text-lg text-gray-700 dark:text-gray-400 max-w-3xl mx-auto mb-8 leading-relaxed">
                     A safe, stigma-free space for students to cultivate mental wellness. Your confidential garden for growth and support is just a click away.
                 </p>
                 <a href="./Pages/virtual_garden.html" class="bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-10 rounded-full transition-transform transform hover:scale-105 inline-block text-lg">
@@ -301,9 +298,10 @@
             <div class="container mx-auto px-6">
                 <div class="text-center mb-12 revealable">
                     <h2 class="text-4xl font-playfair font-bold text-gray-900 dark:text-white">A Garden of Support</h2>
-                    <p class="mt-2 text-lg text-gray-800 dark:text-gray-400">Everything you need to tend to your mental wellbeing.</p>
+                    <p class="mt-2 text-lg text-gray-700 dark:text-gray-400">Everything you need to tend to your mental wellbeing.</p>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 revealable">
+                    <!-- Card 1: AI-Guided First-Aid -->
                     <div class="flip-card">
                         <div class="flip-card-inner">
                             <div class="flip-card-front glass-card p-6 flex flex-col items-center justify-center text-center">
@@ -314,10 +312,11 @@
                                 <button id="open-gemini-modal" class="mt-6 w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition relative z-10">Talk to Blossom ✨</button>
                             </div>
                             <div class="flip-card-back glass-card p-6 flex items-center justify-center text-center">
-                                <p class="text-lg font-semibold italic text-gray-900 dark:text-gray-200 leading-relaxed">Get instant, friendly support and coping strategies from our AI companion, Blossom, anytime you need it.</p>
+                                <p class="text-lg font-semibold italic text-gray-800 dark:text-gray-200 leading-relaxed">Get instant, friendly support and coping strategies from our AI companion, Blossom, anytime you need it.</p>
                             </div>
                         </div>
                     </div>
+                    <!-- Card 2: Confidential Booking -->
                     <div class="flip-card">
                         <div class="flip-card-inner">
                             <div class="flip-card-front glass-card p-6 flex flex-col items-center justify-center text-center">
@@ -327,10 +326,11 @@
                                 <h3 class="text-xl font-bold mb-2 text-gray-900 dark:text-white">Confidential Booking</h3>
                             </div>
                             <div class="flip-card-back glass-card p-6 flex items-center justify-center text-center">
-                                <p class="text-lg font-semibold italic text-gray-900 dark:text-gray-200 leading-relaxed">Securely and privately book appointments with your on-campus counsellor. Your privacy is our priority.</p>
+                                <p class="text-lg font-semibold italic text-gray-800 dark:text-gray-200 leading-relaxed">Securely and privately book appointments with your on-campus counsellor. Your privacy is our priority.</p>
                             </div>
                         </div>
                     </div>
+                    <!-- Card 3: Psychoeducational Hub -->
                     <div class="flip-card">
                         <div class="flip-card-inner">
                             <div class="flip-card-front glass-card p-6 flex flex-col items-center justify-center text-center">
@@ -340,10 +340,11 @@
                                 <h3 class="text-xl font-bold mb-2 text-gray-900 dark:text-white">Psychoeducational Hub</h3>
                             </div>
                             <div class="flip-card-back glass-card p-6 flex items-center justify-center text-center">
-                                <p class="text-lg font-semibold italic text-gray-900 dark:text-gray-200 leading-relaxed">Access a library of videos, relaxation audio, and wellness guides in regional languages, tailored for you.</p>
+                                <p class="text-lg font-semibold italic text-gray-800 dark:text-gray-200 leading-relaxed">Access a library of videos, relaxation audio, and wellness guides in regional languages, tailored for you.</p>
                             </div>
                         </div>
                     </div>
+                    <!-- Card 4: Peer Support Forum -->
                     <div class="flip-card">
                         <div class="flip-card-inner">
                             <div class="flip-card-front glass-card p-6 flex flex-col items-center justify-center text-center">
@@ -353,7 +354,7 @@
                                 <h3 class="text-xl font-bold mb-2 text-gray-900 dark:text-white">Peer Support Forum</h3>
                             </div>
                             <div class="flip-card-back glass-card p-6 flex items-center justify-center text-center">
-                                <p class="text-lg font-semibold italic text-gray-900 dark:text-gray-200 leading-relaxed">Connect with trained student volunteers in a moderated, safe forum. You are not alone in this journey.</p>
+                                <p class="text-lg font-semibold italic text-gray-800 dark:text-gray-200 leading-relaxed">Connect with trained student volunteers in a moderated, safe forum. You are not alone in this journey.</p>
                             </div>
                         </div>
                     </div>
@@ -364,29 +365,29 @@
         <section id="your-garden" class="py-20">
             <div class="container mx-auto px-6 text-center">
                 <h2 class="text-4xl font-playfair font-bold text-gray-900 dark:text-white mb-4 revealable">Watch Your Garden Grow</h2>
-                <p class="text-lg max-w-3xl mx-auto mb-12 text-gray-800 dark:text-gray-400 leading-relaxed revealable">
+                <p class="text-lg max-w-3xl mx-auto mb-12 text-gray-700 dark:text-gray-400 leading-relaxed revealable">
                     As you engage with Soul Bloom, complete exercises, and connect with peers, you'll see your personal virtual plant flourish, symbolizing your journey towards mental wellbeing.
                 </p>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-end revealable perspective-parent">
                         <div class="flex flex-col items-center p-4 transition-3d-lift rounded-2xl glass-card">
                             <svg class="h-24 w-24 text-green-600 dark:text-green-400" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><g><path d="M12,13c-0.55,0-1-0.45-1-1V8c0-0.55,0.45-1,1-1s1,0.45,1,1v4C13,12.55,12.55,13,12,13z"></path><path d="M12.5,15h-1C11.22,15,11,15.22,11,15.5v1C11,16.78,11.22,17,11.5,17h1c0.28,0,0.5-0.22,0.5-0.5v-1 C13,15.22,12.78,15,12.5,15z"></path><path d="M12,2C6.48,2,2,6.48,2,12s4.48,10,10,10s10-4.48,10-10S17.52,2,12,2z M12,20c-4.41,0-8-3.59-8-8s3.59-8,8-8 s8,3.59,8,8S16.41,20,12,20z"></path></g></svg>
-                            <h3 class="font-bold mt-4 text-xl text-gray-900 dark:text-gray-200">The First Sprout</h3>
-                            <p class="text-gray-700 dark:text-gray-400">Starting your journey</p>
+                            <h3 class="font-bold mt-4 text-xl text-gray-800 dark:text-gray-200">The First Sprout</h3>
+                            <p class="text-gray-600 dark:text-gray-400">Starting your journey</p>
                         </div>
                         <div class="flex flex-col items-center p-4 transition-3d-lift rounded-2xl glass-card">
                             <svg class="h-32 w-32 text-green-600 dark:text-green-400" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22L6.66 19.7C7.14 18.45 7.93 17.37 8.95 16.54C10 15.64 11.22 15 12.5 15H17V12H12.5C11.54 12 10.64 11.73 9.84 11.23C9.04 10.73 8.36 10.05 7.85 9.24C7.05 7.94 6.75 6.45 7 5C7.25 3.55 8.06 2.22 9.24 1.28L10.47 2.5L9.5 3.47C9.06 3.91 8.72 4.45 8.5 5C8.25 5.55 8.12 6.16 8.12 6.79C8.12 7.41 8.25 8.03 8.5 8.5C8.72 9.05 9.06 9.59 9.5 10.03L10.47 11L17 11V8Z"/></svg>
-                            <h3 class="font-bold mt-4 text-xl text-gray-900 dark:text-gray-200">Growing Strong</h3>
-                            <p class="text-gray-700 dark:text-gray-400">Completing modules</p>
+                            <h3 class="font-bold mt-4 text-xl text-gray-800 dark:text-gray-200">Growing Strong</h3>
+                            <p class="text-gray-600 dark:text-gray-400">Completing modules</p>
                         </div>
                         <div class="flex flex-col items-center p-4 transition-3d-lift rounded-2xl glass-card">
                             <svg class="h-40 w-40 text-green-600 dark:text-green-400" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C9.24 2 7 4.24 7 7c0 2.22 1.41 4.1 3.33 4.72V12c-1.48-.61-2.5-2.02-2.5-3.64C7.83 6.1 9.71 4 12 4s4.17 2.1 4.17 4.36c0 1.62-1.02 3.03-2.5 3.64v-.28c1.92-.62 3.33-2.5 3.33-4.72C17 4.24 14.76 2 12 2zM8.05 13c-1.39.53-2.53 1.4-3.55 2.54V15c0-1.65 1.35-3 3-3h.5V13zm8.45.5c-0.29-0.54-0.65-1.03-1.07-1.46.42.43.78.92 1.07 1.46zM15 12h-1.5c-1.65 0-3 1.35-3 3v.54c1.02-1.14 2.16-2.01 3.55-2.54H15c1.65 0 3 1.35 3 3v.54c-1.02-1.14-2.16-2.01-3.55-2.54z"/><path d="M12 14c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm0 6c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
-                            <h3 class="font-bold mt-4 text-xl text-gray-900 dark:text-gray-200">Ready to Bud</h3>
-                            <p class="text-gray-700 dark:text-gray-400">Connecting with support</p>
+                            <h3 class="font-bold mt-4 text-xl text-gray-800 dark:text-gray-200">Ready to Bud</h3>
+                            <p class="text-gray-600 dark:text-gray-400">Connecting with support</p>
                         </div>
                         <div class="flex flex-col items-center p-4 transition-3d-lift rounded-2xl glass-card">
                             <svg class="h-48 w-48 text-green-600 dark:text-green-400" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/><path d="m12 10.59-1.41 1.41L12 13.41l1.41-1.41L12 10.59zM16.24 7.76l-1.41 1.41C15.54 9.88 16 10.89 16 12s-.46 2.12-1.17 2.83l1.41 1.41C17.39 15.08 18 13.57 18 12s-.61-3.08-1.76-4.24zM7.76 16.24l1.41-1.41C8.46 14.12 8 13.11 8 12s.46-2.12 1.17-2.83L7.76 7.76C6.61 8.92 6 10.43 6 12s.61 3.08 1.76 4.24z"/><path d="M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/></svg>
-                            <h3 class="font-bold mt-4 text-xl text-gray-900 dark:text-gray-200">In Full Bloom</h3>
-                            <p class="text-gray-700 dark:text-gray-400">Cultivating balance</p>
+                            <h3 class="font-bold mt-4 text-xl text-gray-800 dark:text-gray-200">In Full Bloom</h3>
+                            <p class="text-gray-600 dark:text-gray-400">Cultivating balance</p>
                         </div>
                 </div>
             </div>
@@ -402,10 +403,10 @@
                     </div>
                     <div class="md:w-1/2 revealable transition-3d-left glass-card p-6 rounded-2xl">
                         <h2 class="text-4xl font-playfair font-bold text-gray-900 dark:text-white mb-4">Our Mission: Bridging the Gap</h2>
-                        <p class="text-gray-800 dark:text-gray-300 mb-4 text-lg leading-relaxed">
+                        <p class="text-gray-700 dark:text-gray-300 mb-4 text-lg leading-relaxed">
                             We recognize the silent struggles of students. High stress, anxiety, and the fear of judgment often prevent them from seeking help. Generic, one-size-fits-all solutions don't address the unique cultural and institutional challenges students face.
                         </p>
-                        <p class="text-gray-800 dark:text-gray-300 text-lg leading-relaxed">
+                        <p class="text-gray-700 dark:text-gray-300 text-lg leading-relaxed">
                             Soul Bloom is a tailored, open-source solution designed specifically for you. We integrate regional context, map to your college's support system, and provide a stigma-free environment to ensure every student has access to the care they deserve.
                         </p>
                     </div>
@@ -416,7 +417,7 @@
         <section id="support" class="py-20">
             <div class="container mx-auto px-6 text-center perspective-parent">
                 <h2 class="text-4xl font-playfair font-bold text-gray-900 dark:text-white mb-4 revealable">Find Strength in Community</h2>
-                <p class="text-lg max-w-3xl mx-auto mb-8 text-gray-800 dark:text-gray-400 leading-relaxed revealable">
+                <p class="text-lg max-w-3xl mx-auto mb-8 text-gray-700 dark:text-gray-400 leading-relaxed revealable">
                     Our peer support platform is a place for connection and shared understanding. Led by trained student volunteers, it's a space to share experiences, offer support, and grow together.
                 </p>
                 <div class="relative max-w-4xl mx-auto glass-card rounded-2xl p-8 revealable transition-3d">
@@ -425,13 +426,13 @@
                             <div class="bg-green-200 text-green-800 dark:bg-green-900 dark:text-green-200 h-10 w-10 rounded-full flex-shrink-0 flex items-center justify-center font-bold">A</div>
                             <div class="bg-gray-200 dark:bg-gray-700 p-4 rounded-lg rounded-tl-none">
                                 <p class="font-semibold text-gray-900 dark:text-gray-100">Alex</p>
-                                <p class="text-gray-900 dark:text-gray-200">I've been feeling so overwhelmed with exams lately. It's hard to find the motivation to even start studying.</p>
+                                <p class="text-gray-800 dark:text-gray-200">I've been feeling so overwhelmed with exams lately. It's hard to find the motivation to even start studying.</p>
                             </div>
                         </div>
                          <div class="flex items-start gap-3 justify-end">
                             <div class="bg-green-500/50 dark:bg-green-800/50 p-4 rounded-lg rounded-br-none order-1">
                                 <p class="font-semibold text-gray-900 dark:text-gray-100">Ben (Volunteer)</p>
-                                <p class="text-gray-900 dark:text-gray-200">I completely understand that feeling, Alex. It's tough. One thing that helped me was breaking tasks down into tiny steps. Have you tried the Pomodoro technique?</p>
+                                <p class="text-gray-800 dark:text-gray-200">I completely understand that feeling, Alex. It's tough. One thing that helped me was breaking tasks down into tiny steps. Have you tried the Pomodoro technique?</p>
                             </div>
                             <div class="bg-blue-200 text-blue-800 dark:bg-blue-900 dark:text-blue-200 h-10 w-10 rounded-full flex-shrink-0 flex items-center justify-center font-bold order-2">B</div>
                         </div>
@@ -442,21 +443,21 @@
     </main>
 
     <div id="gemini-modal-overlay" class="fixed inset-0 bg-black/60 z-[100] hidden opacity-0 flex items-center justify-center p-4">
-        <div id="gemini-modal" class="w-full max-w-md bg-white/95 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-6 relative text-gray-900 dark:text-white">
+        <div id="gemini-modal" class="w-full max-w-md bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-2xl p-6 relative">
             <button id="close-gemini-modal" class="absolute top-4 right-4 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition">
                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
             <div class="text-center">
-                <h3 class="text-2xl font-bold font-playfair">Chat with Blossom ✨</h3>
+                <h3 class="text-2xl font-bold font-playfair text-gray-900 dark:text-white">Chat with Blossom ✨</h3>
             </div>
             
             <div class="mt-4">
-                <p class="text-gray-700 dark:text-gray-400 mt-2 text-center">How are you feeling right now?</p>
-                <textarea id="gemini-prompt-input" rows="3" class="w-full mt-2 p-3 text-gray-900 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 border-2 border-transparent focus:border-green-500 focus:ring-0 rounded-lg transition" placeholder="e.g., I'm feeling stressed..."></textarea>
+                <p class="text-gray-600 dark:text-gray-400 mt-2 text-center">How are you feeling right now?</p>
+                <textarea id="gemini-prompt-input" rows="3" class="w-full mt-2 p-3 text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 border-2 border-transparent focus:border-green-500 focus:ring-0 rounded-lg transition" placeholder="e.g., I'm feeling stressed..."></textarea>
                 <button id="gemini-submit-button" class="w-full mt-2 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105">
                     Get Quick Support
                 </button>
-                <div id="gemini-response-area" class="mt-4 p-4 bg-green-50 dark:bg-gray-700/50 rounded-lg min-h-[100px] text-gray-800 dark:text-gray-200 leading-relaxed text-left">
+                <div id="gemini-response-area" class="mt-4 p-4 bg-green-50 dark:bg-gray-700/50 rounded-lg min-h-[100px] text-gray-700 dark:text-gray-200 leading-relaxed text-left">
                     <div id="gemini-loading-indicator" class="hidden h-full flex items-center justify-center">
                         <div class="dot-flashing"></div>
                     </div>
@@ -467,17 +468,17 @@
             <hr class="my-6 border-gray-300 dark:border-gray-600">
 
             <div class="mt-4">
-                <p class="text-gray-700 dark:text-gray-400 mt-2 text-center">Need to relax? Let's create a guided meditation.</p>
-                <input type="text" id="meditation-prompt-input" class="w-full mt-2 p-3 text-gray-900 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 border-2 border-transparent focus:border-green-500 focus:ring-0 rounded-lg transition" placeholder="e.g., 5-minute meditation for anxiety">
+                <p class="text-gray-600 dark:text-gray-400 mt-2 text-center">Need to relax? Let's create a guided meditation.</p>
+                <input type="text" id="meditation-prompt-input" class="w-full mt-2 p-3 text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 border-2 border-transparent focus:border-green-500 focus:ring-0 rounded-lg transition" placeholder="e.g., 5-minute meditation for anxiety">
                 <button id="generate-meditation-button" class="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-lg transition-transform transform hover:scale-105">
                     Create Meditation
                 </button>
-                <div id="meditation-status-area" class="mt-4 text-center text-gray-700 dark:text-gray-400">
+                <div id="meditation-status-area" class="mt-4 text-center text-gray-600 dark:text-gray-400">
                     <div id="meditation-loading-indicator" class="hidden flex flex-col items-center justify-center">
                         <div class="dot-flashing"></div>
                         <p id="meditation-status-text" class="mt-4 text-sm">Generating script...</p>
                     </div>
-                      <audio id="meditation-player" controls class="hidden"></audio>
+                     <audio id="meditation-player" controls class="hidden"></audio>
                 </div>
             </div>
             
