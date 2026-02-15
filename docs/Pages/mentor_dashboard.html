@@ -436,13 +436,56 @@
         }
 
         // --- 3. FLAGGED USERS ---
+        // --- FINAL & STABLE: Integrated Flags Listener ---
         function listenForFlags() {
+            // 1. Safety Check: If mentor identity isn't loaded yet, don't run the query.
+            if (!currentMentor || !currentMentor.id) {
+                console.warn("Mentor ID not found. Retrying flag listener...");
+                return; 
+            }
+
             const flagsRef = collection(db, `artifacts/${sanitizedAppId}/public/data/flagged_users`);
+            
+            // We keep the sort and limit for performance.
             const q = query(flagsRef, orderBy('timestamp', 'desc'), limit(30)); 
+
             onSnapshot(q, (snapshot) => {
-                allFlags = [];
-                snapshot.forEach(doc => allFlags.push({ id: doc.id, ...doc.data() }));
-                window.renderFlags();
+                try {
+                    allFlags = [];
+                    
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        
+                        // CLAIM LOGIC:
+                        // Show if: 1. No one has claimed it OR 2. I am the one who claimed it.
+                        const isUnclaimed = !data.assignedMentorId;
+                        const isMine = data.assignedMentorId === currentMentor.id;
+
+                        if (isUnclaimed || isMine) {
+                            allFlags.push({ id: doc.id, ...data });
+                        }
+                    });
+
+                    // Re-render the table UI
+                    if (typeof window.renderFlags === 'function') {
+                        window.renderFlags();
+                    }
+                    
+                    // Update the Batch counter if the element exists
+                    const batchCounter = document.getElementById('stat-batch');
+                    if (batchCounter) {
+                        const myActiveCases = allFlags.filter(f => f.assignedMentorId === currentMentor.id).length;
+                        batchCounter.innerText = myActiveCases;
+                    }
+                } catch (err) {
+                    console.error("Error processing flag snapshot:", err);
+                }
+            }, (error) => {
+                // --- CRITICAL: Check your F12 Console for a link here ---
+                console.error("Firestore Listener Error:", error);
+                if (error.message.includes("requires an index")) {
+                    console.warn("ACTION REQUIRED: Click the link in the console error above to create the Firestore Index.");
+                }
             });
         }
 
@@ -478,6 +521,29 @@
 
             let html = '';
             filtered.forEach(d => {
+                let actionButtons = '';
+
+                if (!d.assignedMentorId) {
+                    // 1. Alert is UNCLAIMED - Show Claim Button
+                    actionButtons = `
+                        <button onclick="window.claimAlert('${d.id}')" 
+                                class="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-[10px] font-bold uppercase transition-all active:scale-95">
+                            Claim Alert
+                        </button>`;
+                } else {
+                    // 2. Alert is CLAIMED BY YOU - Show Action Buttons
+                    actionButtons = `
+                        <div class="flex gap-2">
+                            <button onclick="window.checkReport('${d.userId}')" 
+                                    class="bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded text-[10px] font-bold uppercase">
+                                View
+                            </button>
+                            <button onclick="window.openResolveModal('${d.id}', '${d.userId}')" 
+                                    class="bg-red-600 hover:bg-red-500 text-white px-2 py-1 rounded text-[10px] font-bold uppercase">
+                                Resolve
+                            </button>
+                        </div>`;
+                }
                 let dateStr = 'Just now';
                 if (d.timestamp?.toDate) dateStr = d.timestamp.toDate().toLocaleString();
                 else if (d.timestamp instanceof Date) dateStr = d.timestamp.toLocaleString();
@@ -892,6 +958,22 @@
             } else { signInAnonymously(auth).catch(e => console.error(e)); } 
         });
         lucide.createIcons();
+        window.claimAlert = async (flagId) => {
+            try {
+                const flagRef = doc(db, `artifacts/${sanitizedAppId}/public/data/flagged_users/${flagId}`);
+                
+                await updateDoc(flagRef, {
+                    assignedMentorId: currentMentor.id,
+                    assignedMentorName: currentMentor.name,
+                    claimedAt: serverTimestamp()
+                });
+
+                window.showToast("Student claimed! They are now in your batch.", "success");
+            } catch (e) {
+                console.error("Claim Error:", e);
+                window.showToast("Someone else might have just claimed this.", "error");
+            }
+        };
     </script>
 </body>
 </html>
