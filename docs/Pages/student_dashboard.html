@@ -6099,7 +6099,12 @@ Use these when you don't know what to write.
                 if(subtitle) subtitle.textContent = "Mood tracked successfully.";
                 if(emojiDisplay) {
                     emojiDisplay.textContent = emoji;
+                    // START BOUNCE
                     emojiDisplay.classList.add('animate-bounce'); 
+                    // STOP BOUNCE AFTER 10 SECONDS
+                    setTimeout(() => {
+                        emojiDisplay.classList.remove('animate-bounce');
+                    }, 10000);
                 }
                 if(textDisplay) textDisplay.textContent = mood;
             }
@@ -6109,11 +6114,9 @@ Use these when you don't know what to write.
                 const prompt = `Generate a very short, warm, and comforting 1-sentence motivational quote for a student who is feeling ${mood} right now. No hashtags.`;
                 const quote = await getGeminiResponse(prompt);
                 if(quoteDisplay) quoteDisplay.textContent = `"${quote}"`;
-                if(emojiDisplay) emojiDisplay.classList.remove('animate-bounce'); 
             } catch (e) {
                 console.error("Quote gen failed", e);
                 if(quoteDisplay) quoteDisplay.textContent = "Take it one step at a time.";
-                if(emojiDisplay) emojiDisplay.classList.remove('animate-bounce');
             }
 
             try {
@@ -6126,7 +6129,7 @@ Use these when you don't know what to write.
                 
                 const updateData = {
                     lastMood: mood,
-                    lastMoodEmoji: emoji, // <--- NEW: Save emoji for reload
+                    lastMoodEmoji: emoji,
                     lastMoodLogAt: serverTimestamp()
                 };
 
@@ -6163,6 +6166,7 @@ Use these when you don't know what to write.
             if (!profile || !profile.lastMoodLogAt) return;
 
             const lastLog = profile.lastMoodLogAt.toDate();
+            const now = new Date();
             const today = new Date();
 
             // If logged TODAY, show the result view immediately
@@ -6180,7 +6184,23 @@ Use these when you don't know what to write.
                     resContainer.classList.remove('opacity-0');
                     
                     if(subtitle) subtitle.textContent = "Daily mood logged.";
-                    if(emojiDisplay) emojiDisplay.textContent = profile.lastMoodEmoji || '✨';
+                    if(emojiDisplay) {
+                        emojiDisplay.textContent = profile.lastMoodEmoji || '✨';
+                        
+                        // --- SMART BOUNCE LOGIC ---
+                        const secondsSinceLog = (now - lastLog) / 1000;
+                        if (secondsSinceLog < 10) {
+                            // If logged less than 10s ago, bounce for the remaining time
+                            emojiDisplay.classList.add('animate-bounce');
+                            setTimeout(() => {
+                                emojiDisplay.classList.remove('animate-bounce');
+                            }, (10 - secondsSinceLog) * 1000);
+                        } else {
+                            // If logged more than 10s ago, ensure NO bounce
+                            emojiDisplay.classList.remove('animate-bounce');
+                        }
+                    }
+                    
                     if(textDisplay) textDisplay.textContent = profile.lastMood;
                     if(quoteDisplay) quoteDisplay.textContent = "Welcome back! You've already checked in today.";
                     
