@@ -1971,7 +1971,45 @@
     <input type="file" id="image-upload-input" class="hidden" accept="image/*">
     <input type="file" id="doc-upload-input" class="hidden">
 
+    <div id="student-chat-widget" class="fixed bottom-6 right-6 z-50 flex flex-col items-end space-y-4">
+        
+        <div id="chat-box" class="hidden w-80 h-96 bg-gray-900 border border-white/20 rounded-xl shadow-2xl flex flex-col overflow-hidden">
+            
+            <div class="bg-indigo-600 p-4 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                    <h3 class="text-white font-bold text-sm" id="chat-header-name">Mentor Support</h3>
+                </div>
+                <button onclick="toggleChatBox()" class="text-white/80 hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
+            </div>
 
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-800/50 scrollbar-hide">
+                <div class="text-center text-gray-500 text-xs mt-10">Connecting to your mentor...</div>
+            </div>
+
+            <div class="p-3 bg-gray-900 border-t border-white/10">
+                <form onsubmit="event.preventDefault(); window.sendStudentMessage();" class="flex gap-2">
+                    <input type="text" id="chat-input" placeholder="Type a message..." 
+                        class="flex-1 bg-gray-800 text-white text-sm border-none rounded-lg px-3 py-2 focus:ring-1 focus:ring-indigo-500 outline-none">
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white p-2 rounded-lg">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <button onclick="toggleChatBox()" class="relative group">
+            <div class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-gray-900 hidden" id="new-msg-dot"></div>
+            <div class="bg-indigo-600 hover:bg-indigo-500 text-white p-4 rounded-full shadow-lg transition-transform hover:scale-110">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <span class="absolute right-14 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10">
+                Chat with Mentor
+            </span>
+        </button>
+    </div>
     <script>
         const sidebarToggleBtn = document.getElementById('sidebar-toggle');
         const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -2209,6 +2247,7 @@
                 initializeScreening();
                 initializeHealthWidget();
                 initAdminNotifications();
+                initChatSystem(user);
 
             } else {
                 // Handle initial sign-in logic (Anonymous for students)
@@ -6310,6 +6349,124 @@ Use these when you don't know what to write.
             } catch (e) {
                 console.error("Cancellation Error:", e);
                 alert("Error cancelling session. Please try again.");
+            }
+        };
+        // --- STUDENT CHAT LOGIC ---
+        let activeChatId = null;
+        let chatListener = null;
+
+        // 1. Initialize: Find my chat
+        async function initChatSystem(user) {
+            try {
+                // Query: Find any chat where I am a participant
+                const chatsRef = collection(db, `artifacts/${sanitizedAppId}/public/data/chats`);
+                const q = query(chatsRef, where("participants", "array-contains", user.uid), limit(1));
+                
+                // Listen for the CHAT DOCUMENT itself (to get Mentor Name & Existence)
+                onSnapshot(q, (snapshot) => {
+                    if (!snapshot.empty) {
+                        const chatDoc = snapshot.docs[0];
+                        activeChatId = chatDoc.id;
+                        const data = chatDoc.data();
+                        
+                        // Update Header with Mentor Name
+                        if (data.mentorName) {
+                            document.getElementById('chat-header-name').innerText = `Chat with ${data.mentorName}`;
+                        }
+
+                        // Start listening for messages
+                        listenForMessages(activeChatId);
+                    } else {
+                        // No chat found yet (Mentor hasn't messaged)
+                        document.getElementById('chat-messages').innerHTML = 
+                            '<div class="text-center text-gray-400 text-xs mt-10 p-4">No active chat yet.<br>Your mentor will reach out here if needed.</div>';
+                    }
+                });
+
+            } catch (e) {
+                console.error("Chat Init Error:", e);
+            }
+        }
+
+        // 2. Toggle UI
+        window.toggleChatBox = () => {
+            const box = document.getElementById('chat-box');
+            const dot = document.getElementById('new-msg-dot');
+            
+            if (box.classList.contains('hidden')) {
+                box.classList.remove('hidden');
+                dot.classList.add('hidden'); // Clear notification
+                // Scroll to bottom
+                const container = document.getElementById('chat-messages');
+                container.scrollTop = container.scrollHeight;
+            } else {
+                box.classList.add('hidden');
+            }
+        };
+
+        // 3. Listen for Messages
+        function listenForMessages(chatId) {
+            if (chatListener) chatListener(); // Unsub existing
+
+            const msgsRef = collection(db, `artifacts/${sanitizedAppId}/public/data/chats/${chatId}/messages`);
+            const q = query(msgsRef, orderBy('timestamp', 'asc'), limit(50));
+
+            chatListener = onSnapshot(q, (snapshot) => {
+                const container = document.getElementById('chat-messages');
+                container.innerHTML = ''; // Clear
+
+                snapshot.forEach(doc => {
+                    const msg = doc.data();
+                    const isMe = msg.senderId === auth.currentUser.uid;
+
+                    // Notification Dot logic: If chat is closed & message is NOT me
+                    if (document.getElementById('chat-box').classList.contains('hidden') && !isMe) {
+                        document.getElementById('new-msg-dot').classList.remove('hidden');
+                    }
+
+                    const bubble = document.createElement('div');
+                    bubble.className = `flex ${isMe ? 'justify-end' : 'justify-start'}`;
+                    bubble.innerHTML = `
+                        <div class="max-w-[85%] rounded-lg p-2 text-xs ${isMe ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-gray-700 text-gray-200 rounded-bl-none'}">
+                            <p>${msg.text}</p>
+                            <div class="text-[8px] opacity-50 text-right mt-1">
+                                ${msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '...'}
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(bubble);
+                });
+                
+                // Auto-scroll
+                container.scrollTop = container.scrollHeight;
+            });
+        }
+
+        // 4. Send Message
+        window.sendStudentMessage = async () => {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            
+            if (!text || !activeChatId) return;
+
+            try {
+                input.value = ''; // Clear UI
+                
+                // Add to sub-collection
+                await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/chats/${activeChatId}/messages`), {
+                    text: text,
+                    senderId: auth.currentUser.uid,
+                    timestamp: serverTimestamp()
+                });
+
+                // Update main doc (to notify mentor)
+                await setDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/chats/${activeChatId}`), {
+                    lastMessage: text,
+                    lastUpdated: serverTimestamp()
+                }, { merge: true });
+
+            } catch (e) {
+                console.error("Send Error:", e);
             }
         };
     </script>
