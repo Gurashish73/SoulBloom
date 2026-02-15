@@ -214,7 +214,7 @@
     </div>
 
     <script type="module">
-        import { getFirestore, doc, getDoc, setDoc, collection, query, onSnapshot, getDocs, where, addDoc, deleteDoc, updateDoc, serverTimestamp, orderBy, limit, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, query, onSnapshot, getDocs, where, addDoc, deleteDoc, deleteField, updateDoc, serverTimestamp, orderBy, limit, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
@@ -552,18 +552,24 @@
                             Claim Alert
                         </button>`;
                 } else if (isMine) {
-                    // 2. Claimed by ME -> Show View / Resolve
-                    actionButtons = `
-                        <div class="flex gap-2 justify-end">
-                            <button onclick="window.checkReport('${d.userId}')" 
-                                    class="bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded text-[10px] font-bold uppercase">
-                                View
-                            </button>
-                            <button onclick="window.openResolveModal('${d.id}', '${d.userId}')" 
-                                    class="bg-red-600 hover:bg-red-500 text-white px-2 py-1 rounded text-[10px] font-bold uppercase">
-                                Resolve
-                            </button>
-                        </div>`;
+                    // Case B: I own it -> Show UNCLAIM / VIEW / RESOLVE
+                actionButtons = `
+                    <div class="flex gap-2 justify-end items-center">
+                        <button onclick="window.unclaimAlert('${d.id}')" 
+                                title="Release back to pool"
+                                class="bg-yellow-600/20 hover:bg-yellow-600/40 text-yellow-400 border border-yellow-600/50 px-2 py-1 rounded text-[10px] font-bold uppercase mr-2 transition-colors">
+                            Unclaim
+                        </button>
+
+                        <button onclick="window.checkReport('${d.userId}')" 
+                                class="bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded text-[10px] font-bold uppercase">
+                            View
+                        </button>
+                        <button onclick="window.openResolveModal('${d.id}', '${d.userId}')" 
+                                class="bg-red-600 hover:bg-red-500 text-white px-2 py-1 rounded text-[10px] font-bold uppercase">
+                            Resolve
+                        </button>
+                    </div>`;
                 } else {
                     // 3. Claimed by OTHERS -> Show Text
                     actionButtons = `<span class="text-gray-500 text-[10px] italic">Claimed by ${d.assignedMentorName || 'others'}</span>`;
@@ -1001,6 +1007,26 @@
             } catch (e) {
                 console.error("Claim Error:", e);
                 window.showToast("Someone else might have just claimed this.", "error");
+            }
+        };
+        // --- UNCLAIM ALERT (Release back to pool) ---
+        window.unclaimAlert = async (flagId) => {
+            if (!confirm("Are you sure you want to unclaim this student? They will be visible to all mentors again.")) return;
+
+            try {
+                const flagRef = doc(db, `artifacts/${sanitizedAppId}/public/data/flagged_users/${flagId}`);
+                
+                // Remove assignment fields to make it 'Open' again
+                await updateDoc(flagRef, {
+                    assignedMentorId: deleteField(),
+                    assignedMentorName: deleteField(),
+                    claimedAt: deleteField()
+                });
+
+                window.showToast("Student released. Alert is now unclaimed.", "success");
+            } catch (e) {
+                console.error("Unclaim Error:", e);
+                window.showToast("Error releasing alert.", "error");
             }
         };
     </script>
