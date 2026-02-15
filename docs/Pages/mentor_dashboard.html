@@ -212,6 +212,33 @@
             </div>
         </div>
     </div>
+    <div id="chat-drawer" class="fixed inset-y-0 right-0 w-96 bg-gray-900 border-l border-white/10 shadow-2xl transform translate-x-full transition-transform duration-300 z-50 flex flex-col">
+        <div class="p-4 border-b border-white/10 flex justify-between items-center bg-gray-800">
+            <div>
+                <h3 class="text-white font-bold text-lg" id="chat-student-name">Student Chat</h3>
+                <span class="text-xs text-green-400 flex items-center gap-1">
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Live Connection
+                </span>
+            </div>
+            <button onclick="toggleChat(false)" class="text-gray-400 hover:text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+        </div>
+
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-900/50">
+            <div class="text-center text-gray-500 text-sm mt-10">Loading conversation...</div>
+        </div>
+
+        <div class="p-4 border-t border-white/10 bg-gray-800">
+            <form onsubmit="event.preventDefault(); window.sendMessage();" class="flex gap-2">
+                <input type="text" id="chat-input" placeholder="Type a message..." 
+                    class="flex-1 bg-gray-700 text-white border-none rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none">
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white p-2 rounded-lg transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                </button>
+            </form>
+        </div>
+    </div>
 
     <script type="module">
         import { getFirestore, doc, getDoc, setDoc, collection, query, onSnapshot, getDocs, where, addDoc, deleteDoc, deleteField, updateDoc, serverTimestamp, orderBy, limit, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
@@ -552,24 +579,21 @@
                             Claim Alert
                         </button>`;
                 } else if (isMine) {
-                    // Case B: I own it -> Show UNCLAIM / VIEW / RESOLVE
-                actionButtons = `
-                    <div class="flex gap-2 justify-end items-center">
-                        <button onclick="window.unclaimAlert('${d.id}')" 
-                                title="Release back to pool"
-                                class="bg-yellow-600/20 hover:bg-yellow-600/40 text-yellow-400 border border-yellow-600/50 px-2 py-1 rounded text-[10px] font-bold uppercase mr-2 transition-colors">
-                            Unclaim
-                        </button>
+                    // Case B: I own it -> Show UNCLAIM / MESSAGE / VIEW / RESOLVE
+                    actionButtons = `
+                        <div class="flex gap-2 justify-end items-center">
+                            
+                            <button onclick="window.unclaimAlert('${d.id}')" title="Release" class="text-yellow-400 hover:text-yellow-300 mr-2"><i data-lucide="rotate-ccw" class="w-4 h-4"></i></button>
 
-                        <button onclick="window.checkReport('${d.userId}')" 
-                                class="bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded text-[10px] font-bold uppercase">
-                            View
-                        </button>
-                        <button onclick="window.openResolveModal('${d.id}', '${d.userId}')" 
-                                class="bg-red-600 hover:bg-red-500 text-white px-2 py-1 rounded text-[10px] font-bold uppercase">
-                            Resolve
-                        </button>
-                    </div>`;
+                            <button onclick="window.openChat('${d.userId}')" 
+                                    class="bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded text-[10px] font-bold uppercase flex items-center gap-1">
+                                Chat
+                            </button>
+
+                            <button onclick="window.checkReport('${d.userId}')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded text-[10px] font-bold uppercase">View</button>
+                            
+                            <button onclick="window.openResolveModal('${d.id}', '${d.userId}')" class="bg-red-600 hover:bg-red-500 text-white px-2 py-1 rounded text-[10px] font-bold uppercase">Resolve</button>
+                        </div>`;
                 } else {
                     // 3. Claimed by OTHERS -> Show Text
                     actionButtons = `<span class="text-gray-500 text-[10px] italic">Claimed by ${d.assignedMentorName || 'others'}</span>`;
@@ -1055,6 +1079,111 @@
             } catch (e) {
                 console.error("Unclaim Error:", e);
                 window.showToast("Error releasing case.", "error");
+            }
+        };
+        // --- CHAT SYSTEM LOGIC ---
+        let activeChatListener = null; // To store the unsubscribe function
+        let currentChatId = null;      // To know which chat is open
+
+        // 1. Open the Chat Drawer
+        window.openChat = async (studentId) => {
+            const drawer = document.getElementById('chat-drawer');
+            const title = document.getElementById('chat-student-name');
+            
+            // UI: Slide in
+            drawer.classList.remove('translate-x-full');
+            title.innerText = `Chat: ${studentId.substring(0,8)}...`;
+            
+            // LOGIC: Create a unique Chat ID (MentorID_StudentID)
+            // This ensures a private channel between YOU and THIS STUDENT
+            currentChatId = `${window.currentMentor.id}_${studentId}`;
+            
+            // Start listening for messages
+            listenForChatMessages(currentChatId);
+        };
+
+        // 2. Close/Toggle Drawer
+        window.toggleChat = (show) => {
+            const drawer = document.getElementById('chat-drawer');
+            if (show) drawer.classList.remove('translate-x-full');
+            else {
+                drawer.classList.add('translate-x-full');
+                // Stop listening when closed to save data
+                if (activeChatListener) activeChatListener(); 
+                currentChatId = null;
+            }
+        };
+
+        // 3. Listen for Real-Time Messages
+        function listenForChatMessages(chatId) {
+            // Unsubscribe from previous chat if open
+            if (activeChatListener) activeChatListener();
+
+            const messagesRef = collection(db, `artifacts/${sanitizedAppId}/public/data/chats/${chatId}/messages`);
+            const q = query(messagesRef, orderBy('timestamp', 'asc'), limit(50));
+
+            activeChatListener = onSnapshot(q, (snapshot) => {
+                const chatContainer = document.getElementById('chat-messages');
+                chatContainer.innerHTML = ''; // Clear previous
+
+                if (snapshot.empty) {
+                    chatContainer.innerHTML = '<div class="text-center text-gray-500 text-xs italic mt-4">Start the conversation...</div>';
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const msg = doc.data();
+                    const isMe = msg.senderId === window.currentMentor.id;
+                    
+                    // Render Message Bubble
+                    const bubble = document.createElement('div');
+                    bubble.className = `flex ${isMe ? 'justify-end' : 'justify-start'}`;
+                    bubble.innerHTML = `
+                        <div class="max-w-[80%] rounded-lg p-3 text-sm ${isMe ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-gray-700 text-gray-200 rounded-bl-none'}">
+                            <p>${msg.text}</p>
+                            <div class="text-[10px] opacity-50 text-right mt-1">
+                                ${msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : 'Sending...'}
+                            </div>
+                        </div>
+                    `;
+                    chatContainer.appendChild(bubble);
+                });
+
+                // Auto-scroll to bottom
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            });
+        }
+
+        // 4. Send a Message
+        window.sendMessage = async () => {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text || !currentChatId) return;
+
+            try {
+                input.value = ''; // Clear input immediately
+                
+                // A. Add message to sub-collection
+                const messagesRef = collection(db, `artifacts/${sanitizedAppId}/public/data/chats/${currentChatId}/messages`);
+                await addDoc(messagesRef, {
+                    text: text,
+                    senderId: window.currentMentor.id,
+                    senderName: window.currentMentor.name,
+                    timestamp: serverTimestamp()
+                });
+
+                // B. Update the main Chat Document (for the list view later)
+                const chatRef = doc(db, `artifacts/${sanitizedAppId}/public/data/chats/${currentChatId}`);
+                await setDoc(chatRef, {
+                    lastMessage: text,
+                    lastUpdated: serverTimestamp(),
+                    participants: [window.currentMentor.id, currentChatId.split('_')[1]], // [MentorID, StudentID]
+                    mentorName: window.currentMentor.name
+                }, { merge: true });
+
+            } catch (e) {
+                console.error("Send Error:", e);
+                window.showToast("Failed to send message", "error");
             }
         };
     </script>

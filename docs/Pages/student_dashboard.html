@@ -1106,7 +1106,21 @@
                     </div>
                 </div>
 
+                <button onclick="toggleChatBox()" 
+                    class="fixed top-8 right-40 bg-gray-700 text-white p-3 rounded-full shadow-lg hover:bg-indigo-600 transition-all hover:scale-105 z-40 group">
+                    
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6">
+                        <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>
+                    </svg>
 
+                    <span id="new-msg-dot" 
+                        class="hidden absolute -top-1 -right-1 w-4 h-4 bg-red-500 border-2 border-gray-900 rounded-full animate-bounce">
+                    </span>
+                    
+                    <span class="absolute top-14 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 pointer-events-none">
+                        Mentor Chat
+                    </span>
+                </button>
                 <div class="max-w-7xl mx-auto relative z-10">
                     <button id="notification-bell-btn"
                         class="fixed top-8 right-24 bg-gray-700 text-white p-3 rounded-full shadow-lg hover:bg-gray-600 transition-colors z-40">
@@ -1119,7 +1133,7 @@
                         class="fixed top-8 right-8 bg-orange-400 text-white p-3 rounded-full shadow-lg hover:bg-orange-500 transition-transform hover:scale-110 z-40">
                         <i data-lucide="siren" class="w-6 h-6"></i>
                     </button>
-
+                    
                     <!-- Header Image -->
                     <div class="pixelated-bg rounded-lg relative">
                         <div class="absolute inset-0 bg-black/40 rounded-lg"></div> <!-- Brightness Overlay -->
@@ -1727,6 +1741,7 @@
                     </div>
                 </div>
                 <!-- END OF ADDED NOTIFICATION PANEL -->
+                 
 
                 <!-- Journal Analysis Modal -->
                 <div id="journal-analysis-modal"
@@ -1971,7 +1986,34 @@
     <input type="file" id="image-upload-input" class="hidden" accept="image/*">
     <input type="file" id="doc-upload-input" class="hidden">
 
+    <div id="chat-box" class="hidden fixed top-20 right-32 z-50 w-80 h-96 bg-gray-900 border border-white/20 rounded-xl shadow-2xl flex flex-col overflow-hidden animate-fade-in origin-top-right">
+    
+        <div class="bg-indigo-600 p-3 flex justify-between items-center shadow-md">
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                <h3 class="text-white font-bold text-sm" id="chat-header-name">Mentor Support</h3>
+            </div>
+            <button onclick="toggleChatBox()" class="text-white/80 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+        </div>
 
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-800/95 scrollbar-hide">
+            <div class="flex flex-col items-center justify-center h-full text-gray-500 space-y-2">
+                <span class="text-xs">Connecting to secure line...</span>
+            </div>
+        </div>
+
+        <div class="p-3 bg-gray-900 border-t border-white/10">
+            <form onsubmit="event.preventDefault(); window.sendStudentMessage();" class="flex gap-2">
+                <input type="text" id="chat-input" placeholder="Type a message..." 
+                    class="flex-1 bg-gray-800 text-white text-sm border border-white/5 rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-indigo-500 transition-all placeholder-gray-500">
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white p-2 rounded-lg shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                </button>
+            </form>
+        </div>
+    </div>
     <script>
         const sidebarToggleBtn = document.getElementById('sidebar-toggle');
         const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -2209,6 +2251,11 @@
                 initializeScreening();
                 initializeHealthWidget();
                 initAdminNotifications();
+                initChatSystem(user);
+                // Ensure this empty function exists to prevent that earlier crash!
+                if (typeof listenForStudentAppointments === 'function') {
+                    listenForStudentAppointments(user);
+                }
 
             } else {
                 // Handle initial sign-in logic (Anonymous for students)
@@ -6354,6 +6401,123 @@ Use these when you don't know what to write.
                 // If index error, show link to create index in console
             });
         }
+        // --- STUDENT CHAT LOGIC ---
+        let activeChatId = null;
+        let chatListener = null;
+
+        // 1. Initialize: Find the chat where I am a participant
+        async function initChatSystem(user) {
+            console.log("Initializing Chat System...");
+            const chatsRef = collection(db, `artifacts/${sanitizedAppId}/public/data/chats`);
+            
+            // Query: Find chat where 'participants' array contains my UID
+            const q = query(chatsRef, where("participants", "array-contains", user.uid), limit(1));
+            
+            onSnapshot(q, (snapshot) => {
+                if (!snapshot.empty) {
+                    const chatDoc = snapshot.docs[0];
+                    activeChatId = chatDoc.id;
+                    const data = chatDoc.data();
+                    
+                    // Update Header Name
+                    if (data.mentorName) {
+                        document.getElementById('chat-header-name').innerText = `Chat with ${data.mentorName}`;
+                    }
+
+                    // Start listening for messages
+                    listenForMessages(activeChatId);
+                } else {
+                    document.getElementById('chat-messages').innerHTML = 
+                        `<div class="text-center text-gray-500 text-xs mt-10 p-4">
+                            No active chat yet.<br>Your mentor will start the conversation here.
+                        </div>`;
+                }
+            });
+        }
+
+        // 2. Toggle Chat Window
+        window.toggleChatBox = () => {
+            const box = document.getElementById('chat-box');
+            const dot = document.getElementById('new-msg-dot');
+            
+            if (box.classList.contains('hidden')) {
+                box.classList.remove('hidden');
+                dot.classList.add('hidden'); // Clear notification
+                setTimeout(scrollToBottom, 100); // Scroll to bottom after opening
+            } else {
+                box.classList.add('hidden');
+            }
+        };
+
+        // 3. Listen for Messages
+        function listenForMessages(chatId) {
+            if (chatListener) chatListener(); // Unsub previous
+
+            const msgsRef = collection(db, `artifacts/${sanitizedAppId}/public/data/chats/${chatId}/messages`);
+            const q = query(msgsRef, orderBy('timestamp', 'asc'), limit(50));
+
+            chatListener = onSnapshot(q, (snapshot) => {
+                const container = document.getElementById('chat-messages');
+                container.innerHTML = ''; // Clear old messages
+
+                snapshot.forEach(doc => {
+                    const msg = doc.data();
+                    const isMe = msg.senderId === auth.currentUser.uid;
+
+                    // Notification Logic: If box is closed & msg is NOT mine -> Show Red Dot
+                    const box = document.getElementById('chat-box');
+                    if (box.classList.contains('hidden') && !isMe) {
+                        document.getElementById('new-msg-dot').classList.remove('hidden');
+                    }
+
+                    // Create Message Bubble
+                    const bubble = document.createElement('div');
+                    bubble.className = `flex w-full ${isMe ? 'justify-end' : 'justify-start'} mb-3`;
+                    bubble.innerHTML = `
+                        <div class="max-w-[85%] flex flex-col ${isMe ? 'items-end' : 'items-start'}">
+                            <div class="px-3 py-2 text-xs rounded-xl ${isMe ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-gray-700 text-gray-200 rounded-bl-none'}">
+                                <p>${msg.text}</p>
+                            </div>
+                            <span class="text-[9px] text-gray-500 mt-1 mx-1">
+                                ${msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '...'}
+                            </span>
+                        </div>`;
+                    container.appendChild(bubble);
+                });
+                scrollToBottom();
+            });
+        }
+
+        function scrollToBottom() {
+            const c = document.getElementById('chat-messages');
+            c.scrollTop = c.scrollHeight;
+        }
+
+        // 4. Send Message
+        window.sendStudentMessage = async () => {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            
+            if (!text || !activeChatId) return;
+
+            try {
+                input.value = ''; // Clear input
+                
+                // Add to sub-collection
+                await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/chats/${activeChatId}/messages`), {
+                    text: text,
+                    senderId: auth.currentUser.uid,
+                    timestamp: serverTimestamp()
+                });
+                
+                // Update main doc (Notify Mentor)
+                await setDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/chats/${activeChatId}`), {
+                    lastMessage: text,
+                    lastUpdated: serverTimestamp()
+                }, { merge: true });
+
+            } catch (e) { console.error("Send Error:", e); }
+        };
     </script>
     <script>
         const swipeTarget = document.getElementById('main-content');
