@@ -993,40 +993,68 @@
             } else { signInAnonymously(auth).catch(e => console.error(e)); } 
         });
         lucide.createIcons();
-        window.claimAlert = async (flagId) => {
+        window.claimAlert = async (fullId) => {
             try {
-                const flagRef = doc(db, `artifacts/${sanitizedAppId}/public/data/flagged_users/${flagId}`);
-                
-                await updateDoc(flagRef, {
-                    assignedMentorId: currentMentor.id,
-                    assignedMentorName: currentMentor.name,
+                let docRef;
+
+                // 1. CHECK: Is this a Critical Report (Red Alert)?
+                if (fullId.startsWith('screen_')) {
+                    // Remove the 'screen_' prefix to get the real ID
+                    const realId = fullId.replace('screen_', '');
+                    
+                    // TARGET THE REPORTS COLLECTION
+                    // (If your collection is named 'screenings', change 'reports' to 'screenings' below)
+                    docRef = doc(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports/${realId}`);
+                } 
+                // 2. OTHERWISE: It's a Standard Flag (Yellow Alert)
+                else {
+                    docRef = doc(db, `artifacts/${sanitizedAppId}/public/data/flagged_users/${fullId}`);
+                }
+
+                // 3. UPDATE: Claim it
+                await updateDoc(docRef, {
+                    assignedMentorId: window.currentMentor.id,
+                    assignedMentorName: window.currentMentor.name,
                     claimedAt: serverTimestamp()
                 });
 
-                window.showToast("Student claimed! They are now in your batch.", "success");
+                window.showToast("Case claimed successfully!", "success");
+
             } catch (e) {
                 console.error("Claim Error:", e);
-                window.showToast("Someone else might have just claimed this.", "error");
+                // Specialized error message
+                if (e.code === 'not-found') {
+                    window.showToast("Error: Document not found. Check if collection name is 'reports' or 'screenings'.", "error");
+                } else {
+                    window.showToast("Someone else might have just claimed this.", "error");
+                }
             }
         };
         // --- UNCLAIM ALERT (Release back to pool) ---
-        window.unclaimAlert = async (flagId) => {
-            if (!confirm("Are you sure you want to unclaim this student? They will be visible to all mentors again.")) return;
+        window.unclaimAlert = async (fullId) => {
+            if (!confirm("Release this case back to the pool?")) return;
 
             try {
-                const flagRef = doc(db, `artifacts/${sanitizedAppId}/public/data/flagged_users/${flagId}`);
+                let docRef;
+
+                if (fullId.startsWith('screen_')) {
+                    const realId = fullId.replace('screen_', '');
+                    docRef = doc(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports/${realId}`);
+                } else {
+                    docRef = doc(db, `artifacts/${sanitizedAppId}/public/data/flagged_users/${fullId}`);
+                }
                 
-                // Remove assignment fields to make it 'Open' again
-                await updateDoc(flagRef, {
+                // Remove the assignment fields
+                await updateDoc(docRef, {
                     assignedMentorId: deleteField(),
                     assignedMentorName: deleteField(),
                     claimedAt: deleteField()
                 });
 
-                window.showToast("Student released. Alert is now unclaimed.", "success");
+                window.showToast("Case released.", "success");
             } catch (e) {
                 console.error("Unclaim Error:", e);
-                window.showToast("Error releasing alert.", "error");
+                window.showToast("Error releasing case.", "error");
             }
         };
     </script>
