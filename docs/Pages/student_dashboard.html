@@ -1179,11 +1179,15 @@
                                 </button>
                             </div>
 
-                            <div id="mood-result-container" class="hidden flex-col items-center text-center opacity-0 transition-opacity duration-500">
-                                <div class="flex items-center gap-3 mb-2">
+                            <div id="mood-result-container" class="hidden flex-col items-center text-center opacity-0 transition-opacity duration-500 relative">
+                                <button onclick="window.resetMoodUI()" class="absolute top-0 right-0 text-xs text-gray-500 hover:text-white underline p-2">
+                                    Log different mood
+                                </button>
+
+                                <div class="flex items-center gap-3 mb-2 mt-2">
                                     <div class="text-5xl animate-bounce" id="selected-mood-emoji"></div>
                                     <div class="text-left">
-                                        <span class="text-xs text-gray-400 uppercase tracking-widest block">Logged</span>
+                                        <span class="text-xs text-gray-400 uppercase tracking-widest block">Logged Today</span>
                                         <h4 class="text-2xl font-bold text-white" id="selected-mood-text"></h4>
                                     </div>
                                 </div>
@@ -1195,7 +1199,7 @@
                                 </div>
 
                                 <div class="text-xs text-gray-500 mt-4 bg-black/20 px-3 py-1 rounded-full border border-white/5">
-                                    <i data-lucide="clock" class="w-3 h-3 inline mr-1"></i> Next check-in available in 3 hours
+                                    <i data-lucide="check-circle" class="w-3 h-3 inline mr-1 text-green-400"></i> Daily XP Collected
                                 </div>
                             </div>
                         </div>
@@ -2933,6 +2937,9 @@
             dashboardProfilePicEmoji.textContent = pic;
             chatProfilePicEmoji.textContent = pic;
             updateGreeting(name);
+            if (typeof currentUserProfile !== 'undefined') {
+                checkDailyMoodState(currentUserProfile);
+            }
         }
 
 
@@ -6062,23 +6069,21 @@ Use these when you don't know what to write.
             }
         }
 
-        // --- 2. Mood Logger (With UI Update & AI Quote) ---
+        // --- 2. Mood Logger (Updated for Persistence) ---
         window.logMood = async (mood, emoji, score) => {
             if (!currentUserId) return showNotification("Please sign in to log mood.", "error");
 
             // 1. Check if XP has already been earned TODAY
             let earnXP = true;
             if (currentUserProfile && currentUserProfile.lastMoodLogAt) {
-                const lastLog = currentUserProfile.lastMoodLogAt.toDate(); // Convert Firestore timestamp
+                const lastLog = currentUserProfile.lastMoodLogAt.toDate();
                 const today = new Date();
-                
-                // Compare calendar dates (e.g., "Mon Feb 15 2026" === "Mon Feb 15 2026")
                 if (lastLog.toDateString() === today.toDateString()) {
-                    earnXP = false; // Already logged today
+                    earnXP = false; 
                 }
             }
 
-            // 2. IMMEDIATE UI UPDATE (Hide Buttons, Show Result)
+            // 2. IMMEDIATE UI UPDATE
             const btnContainer = document.getElementById('mood-buttons-container');
             const resContainer = document.getElementById('mood-result-container');
             const subtitle = document.getElementById('mood-subtitle');
@@ -6092,7 +6097,6 @@ Use these when you don't know what to write.
                 setTimeout(() => resContainer.classList.remove('opacity-0'), 50);
                 
                 if(subtitle) subtitle.textContent = "Mood tracked successfully.";
-                // Add bounce initially
                 if(emojiDisplay) {
                     emojiDisplay.textContent = emoji;
                     emojiDisplay.classList.add('animate-bounce'); 
@@ -6100,70 +6104,101 @@ Use these when you don't know what to write.
                 if(textDisplay) textDisplay.textContent = mood;
             }
 
-            // 3. Generate AI Quote (Background Process)
+            // 3. Generate AI Quote
             try {
                 const prompt = `Generate a very short, warm, and comforting 1-sentence motivational quote for a student who is feeling ${mood} right now. No hashtags.`;
                 const quote = await getGeminiResponse(prompt);
-                
                 if(quoteDisplay) quoteDisplay.textContent = `"${quote}"`;
-                if(emojiDisplay) emojiDisplay.classList.remove('animate-bounce'); // Stop bounce
-
+                if(emojiDisplay) emojiDisplay.classList.remove('animate-bounce'); 
             } catch (e) {
                 console.error("Quote gen failed", e);
-                if(quoteDisplay) quoteDisplay.textContent = "Take it one step at a time. You've got this.";
-                if(emojiDisplay) emojiDisplay.classList.remove('animate-bounce'); // Stop bounce
+                if(quoteDisplay) quoteDisplay.textContent = "Take it one step at a time.";
+                if(emojiDisplay) emojiDisplay.classList.remove('animate-bounce');
             }
 
             try {
-                // 4. Save to History (We ALWAYS save the log record)
+                // 4. Save & Update Profile
                 await addDoc(collection(db, `artifacts/${sanitizedAppId}/users/${currentUserId}/mood_logs`), {
                     mood, emoji, score, createdAt: serverTimestamp()
                 });
                 
-                // 5. Update Profile
                 const profileRef = doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${currentUserId}`);
                 
-                // Prepare update data
                 const updateData = {
                     lastMood: mood,
-                    lastMoodLogAt: serverTimestamp() // Always update the time
+                    lastMoodEmoji: emoji, // <--- NEW: Save emoji for reload
+                    lastMoodLogAt: serverTimestamp()
                 };
 
-                // Only add XP if it's a new day
                 if (earnXP) {
                     updateData.moodLoginXP = increment(10);
-                }
-
-                await updateDoc(profileRef, updateData);
-
-                if (earnXP) {
                     showNotification(`+10 Mood XP earned! (Daily Bonus) 🌟`);
                 } else {
                     showNotification(`Mood logged! (Daily XP limit reached)`);
                 }
 
+                await updateDoc(profileRef, updateData);
                 lucide.createIcons(); 
 
-                // 6. Auto-Open Blossom AI if feeling low
+                // 5. Auto-Open Blossom AI if low score
                 if (score <= 2) {
                     const aiChatWindow = document.getElementById('ai-chat-window');
                     const toggleBtn = document.getElementById('ai-chat-toggle-btn');
-                    
                     setTimeout(() => {
-                        if(aiChatWindow.classList.contains('hidden')){
-                            toggleBtn.click(); 
-                        }
+                        if(aiChatWindow.classList.contains('hidden')){ toggleBtn.click(); }
                         const input = document.getElementById('ai-chat-input');
-                        if(input) {
-                            input.value = `I'm feeling ${mood.toLowerCase()} right now...`;
-                            input.focus();
-                        }
+                        if(input) { input.value = `I'm feeling ${mood.toLowerCase()} right now...`; input.focus(); }
                     }, 1500); 
                 }
 
             } catch (e) {
                 console.error("Mood Log Error:", e);
-                showNotification("Error saving mood to database.", "error");
+            }
+        }
+
+        // --- 3. New Helper Functions ---
+        
+        // Check DB state on load
+        window.checkDailyMoodState = (profile) => {
+            if (!profile || !profile.lastMoodLogAt) return;
+
+            const lastLog = profile.lastMoodLogAt.toDate();
+            const today = new Date();
+
+            // If logged TODAY, show the result view immediately
+            if (lastLog.toDateString() === today.toDateString()) {
+                const btnContainer = document.getElementById('mood-buttons-container');
+                const resContainer = document.getElementById('mood-result-container');
+                const emojiDisplay = document.getElementById('selected-mood-emoji');
+                const textDisplay = document.getElementById('selected-mood-text');
+                const quoteDisplay = document.getElementById('mood-quote');
+                const subtitle = document.getElementById('mood-subtitle');
+
+                if (btnContainer && resContainer) {
+                    btnContainer.classList.add('hidden');
+                    resContainer.classList.remove('hidden');
+                    resContainer.classList.remove('opacity-0');
+                    
+                    if(subtitle) subtitle.textContent = "Daily mood logged.";
+                    if(emojiDisplay) emojiDisplay.textContent = profile.lastMoodEmoji || '✨';
+                    if(textDisplay) textDisplay.textContent = profile.lastMood;
+                    if(quoteDisplay) quoteDisplay.textContent = "Welcome back! You've already checked in today.";
+                    
+                    lucide.createIcons();
+                }
+            }
+        }
+
+        // Allow user to log again (Reset UI)
+        window.resetMoodUI = () => {
+            const btnContainer = document.getElementById('mood-buttons-container');
+            const resContainer = document.getElementById('mood-result-container');
+            const subtitle = document.getElementById('mood-subtitle');
+            
+            if (btnContainer && resContainer) {
+                resContainer.classList.add('hidden');
+                btnContainer.classList.remove('hidden');
+                if(subtitle) subtitle.textContent = "How are you feeling right now?";
             }
         }
     </script>
