@@ -187,6 +187,7 @@
                 jour: document.getElementById('stats-journal'),
                 scr: document.getElementById('stats-screening'),
                 wat: document.getElementById('stats-watering'),
+                mood: document.getElementById('stats-mood'),
                 game: document.getElementById('stats-game'),
                 all: document.getElementById('stats-total-score')
             }
@@ -200,7 +201,7 @@
             { level: 4, name: "The Soul Bloom", icon: "🌸", threshold: 300, desc: "Fully blossomed, radiating peace." }
         ];
 
-        let state = { user: null, xp: 0, level: 1, evolve: false, waterXP: 0, gameXP: 0, lastWater: null, syncing: false };
+        let state = { user: null, xp: 0, level: 1, evolve: false, waterXP: 0, moodXP: 0, gameXP: 0, lastWater: null, syncing: false };
 
         onAuthStateChanged(auth, async (u) => {
             if (u) {
@@ -212,6 +213,7 @@
                         state.level = d.gardenLevel || 1;
                         state.waterXP = d.wateringXP || 0;
                         state.gameXP = d.gameXP || 0;
+                        state.moodXP = d.moodLoginXP || 0;
                         state.lastWater = d.lastWateredDate || null;
                         calculateAndRender();
                     }
@@ -246,12 +248,13 @@
                     countS = sSnap.size;
                 } catch(e) { console.warn("Screening read error:", e); }
 
-                state.xp = (countA * XP.A) + (countJ * XP.J) + (countS * XP.S) + state.waterXP + state.gameXP;
+                state.xp = (countA * XP.A) + (countJ * XP.J) + (countS * XP.S) + state.waterXP + state.moodXP + state.gameXP;
 
                 els.stats.task.innerText = countA;
                 els.stats.jour.innerText = countJ;
                 els.stats.scr.innerText = countS;
                 els.stats.wat.innerText = state.waterXP;
+                els.stats.mood.innerText = state.moodXP;
                 els.stats.game.innerText = state.gameXP + " XP";
                 els.stats.all.innerText = state.xp;
                 els.total.innerText = `${state.xp} XP`;
