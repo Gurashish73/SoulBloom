@@ -506,19 +506,36 @@
         };
 
         // --- 4. APPOINTMENTS ---
+        // --- CONSOLIDATED: Private Appointments Listener with Student Info ---
         function listenForAppointments() {
+            // 1. Safety Check: If mentor identity isn't loaded yet, wait.
+            if (!currentMentor.id) {
+                console.log("Waiting for mentor ID to load private schedule...");
+                // Re-call this function once mentor is set in onAuthStateChanged
+                return; 
+            }
+
             const apptRef = collection(db, `artifacts/${sanitizedAppId}/public/data/appointments`);
             
-            onSnapshot(query(apptRef), (snapshot) => {
+            // 2. The Private Query: 
+            // Filter by current mentor's ID so you only see your specific sessions.
+            // Note: You MUST check the console and click the link to create an index if it's the first time.
+            const q = query(
+                apptRef, 
+                where("mentorId", "==", currentMentor.id),
+                orderBy("startTime", "asc")
+            );
+
+            onSnapshot(q, (snapshot) => {
                 const list = document.getElementById('appointments-list');
+                if (!list) return;
+
                 const appts = [];
                 snapshot.forEach(doc => appts.push({ id: doc.id, ...doc.data() }));
                 
-                // Sort by time
-                appts.sort((a, b) => (a.startTime?.seconds || 0) - (b.startTime?.seconds || 0));
-                
+                // Handle Empty State
                 if (appts.length === 0) { 
-                    list.innerHTML = `<p class="text-gray-500 text-xs text-center py-4">No sessions scheduled.</p>`; 
+                    list.innerHTML = `<p class="text-gray-500 text-xs text-center py-4 italic">No sessions scheduled for you.</p>`; 
                     return; 
                 }
                 
@@ -529,11 +546,11 @@
                     const isPriority = a.status === 'booked' && (a.mentorName || '').includes('Priority');
                     const isBooked = a.status === 'booked';
                     
-                    // Style logic
+                    // UI Logic: Border colors and Status labels
                     const borderClass = isPriority ? 'border-l-4 border-red-500' : (isBooked ? 'border-l-4 border-blue-500' : 'border-l-4 border-gray-500');
                     const statusText = isPriority ? 'Priority Session' : (isBooked ? 'Booked' : 'Open Slot');
                     
-                    // --- NEW: Show Student ID if booked ---
+                    // --- Feature: Show Student ID if booked ---
                     let studentInfoHTML = '';
                     if (isBooked && a.studentId) {
                         studentInfoHTML = `
@@ -545,7 +562,6 @@
                             </div>
                         `;
                     } else if (isBooked) {
-                        // Fallback if booked but no ID found
                         studentInfoHTML = `<div class="mt-1 text-xs text-gray-500 italic">Booked (Anonymous)</div>`;
                     }
 
@@ -558,7 +574,6 @@
                                 ${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                             </div>
                             <div class="text-xs text-gray-400">${statusText}</div>
-                            
                             ${studentInfoHTML}
                         </div>
                         
@@ -575,7 +590,18 @@
                     `;
                     list.appendChild(div);
                 });
-                lucide.createIcons();
+                
+                // Refresh Lucide icons for the new elements
+                if (window.lucide) window.lucide.createIcons();
+                
+            }, (error) => {
+                // --- CRITICAL: Handle Firestore Index Requirement ---
+                console.error("Firestore Query Error:", error);
+                if (error.message.includes("requires an index")) {
+                    const container = document.getElementById('appointments-list');
+                    container.innerHTML = `<p class="text-red-400 text-[10px] p-2 bg-red-900/10 rounded">Database Index required. Please check developer console to create it.</p>`;
+                    console.warn("Follow the link in the error above to build the composite index for mentorId and startTime.");
+                }
             });
         }
         
