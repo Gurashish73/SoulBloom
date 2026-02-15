@@ -1144,16 +1144,19 @@
                             <p class="text-gray-400 font-roboto">Let's make today a good one.</p>
                         </div>
 
-                        <div class="widget glass p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 border border-white/10 shadow-lg">
-                            <div class="flex-1 text-center md:text-left">
-                                <h3 class="text-2xl font-bold flex items-center justify-center md:justify-start gap-2 text-white">
-                                    <i data-lucide="smile-plus" class="w-6 h-6 text-fuchsia-400"></i>
-                                    Mood Log
-                                </h3>
-                                <p class="text-gray-400 mt-1 text-sm">How are you feeling right now?</p>
+                        <div class="widget glass p-6 rounded-2xl border border-white/10 shadow-lg min-h-[180px] flex flex-col justify-center relative overflow-hidden transition-all duration-300">
+    
+                            <div id="mood-header" class="flex justify-between items-start mb-2">
+                                <div class="flex-1">
+                                    <h3 class="text-2xl font-bold flex items-center gap-2 text-white">
+                                        <i data-lucide="smile-plus" class="w-6 h-6 text-fuchsia-400"></i>
+                                        Mood Log
+                                    </h3>
+                                    <p id="mood-subtitle" class="text-gray-400 mt-1 text-sm">How are you feeling right now?</p>
+                                </div>
                             </div>
-                            
-                            <div class="flex flex-wrap justify-center gap-3">
+
+                            <div id="mood-buttons-container" class="flex flex-wrap justify-center gap-3 transition-opacity duration-300">
                                 <button onclick="window.logMood('Happy', '😄', 5)" class="mood-btn flex flex-col items-center justify-center w-16 h-16 bg-white/5 rounded-xl hover:bg-green-500/20 hover:scale-105 transition-all duration-200 border border-white/5 group">
                                     <div class="text-2xl mb-1 group-hover:animate-bounce">😄</div>
                                     <span class="text-[10px] text-gray-500 group-hover:text-green-300 font-bold uppercase tracking-wider">Happy</span>
@@ -1175,8 +1178,27 @@
                                     <span class="text-[10px] text-gray-500 group-hover:text-red-300 font-bold uppercase tracking-wider">Sad</span>
                                 </button>
                             </div>
-                        </div>
 
+                            <div id="mood-result-container" class="hidden flex-col items-center text-center opacity-0 transition-opacity duration-500">
+                                <div class="flex items-center gap-3 mb-2">
+                                    <div class="text-5xl animate-bounce" id="selected-mood-emoji"></div>
+                                    <div class="text-left">
+                                        <span class="text-xs text-gray-400 uppercase tracking-widest block">Logged</span>
+                                        <h4 class="text-2xl font-bold text-white" id="selected-mood-text"></h4>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-white/5 rounded-lg p-3 border border-white/10 w-full max-w-md mt-2">
+                                    <p id="mood-quote" class="text-gray-300 italic text-sm leading-relaxed">
+                                        <span class="inline-block animate-pulse">✨ Generating motivation...</span>
+                                    </p>
+                                </div>
+
+                                <div class="text-xs text-gray-500 mt-4 bg-black/20 px-3 py-1 rounded-full border border-white/5">
+                                    <i data-lucide="clock" class="w-3 h-3 inline mr-1"></i> Next check-in available in 3 hours
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <!-- Main Dashboard Grid -->
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-6 mt-6">
@@ -6040,60 +6062,89 @@ Use these when you don't know what to write.
             }
         }
 
-        // --- 2. Mood Logger (With 3-Hour Limit & Separate XP) ---
+        // --- 2. Mood Logger (With UI Update & AI Quote) ---
         window.logMood = async (mood, emoji, score) => {
             if (!currentUserId) return showNotification("Please sign in to log mood.", "error");
 
-            // Check for 3-Hour Cooldown
+            // 1. Check for 3-Hour Cooldown
             if (currentUserProfile && currentUserProfile.lastMoodLogAt) {
-                const lastLog = currentUserProfile.lastMoodLogAt.toDate(); // Convert Firestore Timestamp to JS Date
+                const lastLog = currentUserProfile.lastMoodLogAt.toDate();
                 const now = new Date();
                 const diffInHours = (now - lastLog) / (1000 * 60 * 60);
 
                 if (diffInHours < 3) {
                     const remainingMinutes = Math.ceil((3 - diffInHours) * 60);
                     showNotification(`⏳ Please wait ${remainingMinutes} mins before logging mood again.`, "error");
-                    return; // Stop execution here
+                    return;
                 }
             }
 
+            // 2. IMMEDIATE UI UPDATE (Hide Buttons, Show Result)
+            const btnContainer = document.getElementById('mood-buttons-container');
+            const resContainer = document.getElementById('mood-result-container');
+            const subtitle = document.getElementById('mood-subtitle');
+            const emojiDisplay = document.getElementById('selected-mood-emoji');
+            const textDisplay = document.getElementById('selected-mood-text');
+            const quoteDisplay = document.getElementById('mood-quote');
+
+            if(btnContainer && resContainer) {
+                btnContainer.classList.add('hidden');
+                resContainer.classList.remove('hidden');
+                // Little delay for fade-in effect
+                setTimeout(() => resContainer.classList.remove('opacity-0'), 50);
+                
+                if(subtitle) subtitle.textContent = "Mood tracked successfully.";
+                if(emojiDisplay) emojiDisplay.textContent = emoji;
+                if(textDisplay) textDisplay.textContent = mood;
+            }
+
+            // 3. Generate AI Quote (Background Process)
             try {
-                // A. Save to History Collection (for graphs/records)
+                const prompt = `Generate a very short, warm, and comforting 1-sentence motivational quote for a student who is feeling ${mood} right now. No hashtags.`;
+                const quote = await getGeminiResponse(prompt);
+                if(quoteDisplay) quoteDisplay.textContent = `"${quote}"`;
+            } catch (e) {
+                console.error("Quote gen failed", e);
+                if(quoteDisplay) quoteDisplay.textContent = "Take it one step at a time. You've got this.";
+            }
+
+            try {
+                // 4. Save to History
                 await addDoc(collection(db, `artifacts/${sanitizedAppId}/users/${currentUserId}/mood_logs`), {
                     mood, emoji, score, createdAt: serverTimestamp()
                 });
                 
-                // B. Update Profile (Add Separate XP & Timestamp)
+                // 5. Update Profile (XP & Timestamp)
                 const profileRef = doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${currentUserId}`);
                 await updateDoc(profileRef, {
-                    moodLoginXP: increment(10), // SAVED SEPARATELY (Not wateringXP)
+                    moodLoginXP: increment(10),
                     lastMood: mood,
-                    lastMoodLogAt: serverTimestamp() // Save time to check next login
+                    lastMoodLogAt: serverTimestamp()
                 });
 
-                showNotification(`Mood logged! +10 Mood XP earned 🌟`);
+                showNotification(`+10 Mood XP earned 🌟`);
+                lucide.createIcons(); // Refresh icons in the result view
 
-                // C. Auto-Open Blossom AI if feeling low (Score 1 or 2)
+                // 6. Auto-Open Blossom AI if feeling low (Score 1 or 2)
                 if (score <= 2) {
                     const aiChatWindow = document.getElementById('ai-chat-window');
                     const toggleBtn = document.getElementById('ai-chat-toggle-btn');
                     
-                    // Open window if closed
-                    if(aiChatWindow.classList.contains('hidden')){
-                        toggleBtn.click(); 
-                    }
-                    
-                    // Pre-fill the input
-                    const input = document.getElementById('ai-chat-input');
-                    if(input) {
-                        input.value = `I'm feeling ${mood.toLowerCase()} right now...`;
-                        input.focus();
-                    }
+                    setTimeout(() => {
+                        if(aiChatWindow.classList.contains('hidden')){
+                            toggleBtn.click(); 
+                        }
+                        const input = document.getElementById('ai-chat-input');
+                        if(input) {
+                            input.value = `I'm feeling ${mood.toLowerCase()} right now...`;
+                            input.focus();
+                        }
+                    }, 1500); // Slight delay so they read the quote first
                 }
 
             } catch (e) {
                 console.error("Mood Log Error:", e);
-                showNotification("Error logging mood.", "error");
+                showNotification("Error saving mood to database.", "error");
             }
         }
     </script>
