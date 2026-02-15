@@ -2055,8 +2055,8 @@
         const YT_MUSIC_CLIENT_ID = '713116806966-hfrd95p9a5a5f4gkopi9u8b2ai68sg19.apps.googleusercontent.com';
         const GOOGLE_FIT_CLIENT_ID = '713116806966-hfrd95p9a5a5f4gkopi9u8b2ai68sg19.apps.googleusercontent.com';
         const YOUTUBE_API_KEY = 'AIzaSyB_oUcHbNNfUUROG6nseAI9sv3BANrf6qI';
-        const partA = "AIzaSyA"; // First 7 characters
-        const partB = "_QF91RjzubX5Ri_89ZzqShnp1TW1khvo"; // Remaining characters
+        const partA = "AIzaSyB"; // First 7 characters
+        const partB = "zb0Fpdm75hNboG9aqvGlhS_zLb4cSzcU"; // Remaining characters
         const GEMINI_API_KEY = partA + partB; // Combine to form the full key
 
         // --- END OF ACTION REQUIRED ---
@@ -6312,6 +6312,48 @@ Use these when you don't know what to write.
                 alert("Error cancelling session. Please try again.");
             }
         };
+        // --- MISSING FUNCTION: Listen for Student Appointments ---
+        function listenForStudentAppointments(user) {
+            const listContainer = document.getElementById('appointments-list'); // Ensure you have a <ul id="appointments-list"> in your HTML
+            if (!listContainer) return;
+
+            // Query appointments where 'studentId' matches the current user
+            const q = query(
+                collection(db, `artifacts/${sanitizedAppId}/public/data/appointments`),
+                where("studentId", "==", user.uid),
+                orderBy("date", "asc") 
+            );
+
+            onSnapshot(q, (snapshot) => {
+                listContainer.innerHTML = ''; // Clear list
+                
+                if (snapshot.empty) {
+                    listContainer.innerHTML = '<li class="text-gray-500 text-sm p-2 text-center">No upcoming sessions.</li>';
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const dateObj = data.date ? new Date(data.date) : new Date();
+                    
+                    const li = document.createElement('li');
+                    li.className = "p-3 bg-gray-800 rounded-lg border border-white/10 flex justify-between items-center mb-2";
+                    li.innerHTML = `
+                        <div>
+                            <div class="text-white font-bold text-sm">${data.title || 'Mentorship Session'}</div>
+                            <div class="text-indigo-300 text-xs">${dateObj.toLocaleDateString()} at ${dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                        </div>
+                        <a href="${data.meetLink}" target="_blank" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-1 rounded-full transition">
+                            Join
+                        </a>
+                    `;
+                    listContainer.appendChild(li);
+                });
+            }, (error) => {
+                console.error("Error loading appointments:", error);
+                // If index error, show link to create index in console
+            });
+        }
     </script>
     <script>
         const swipeTarget = document.getElementById('main-content');
