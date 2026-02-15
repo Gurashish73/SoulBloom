@@ -2174,32 +2174,44 @@
             });
         }
 
-
-
-        onAuthStateChanged(auth, async (user) => { // <-- Make it async
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
+                // --- NEW MENTOR CHECK ---
+                // We check the public profiles to see if this user is a mentor
+                const profileRef = doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${user.uid}`);
+                const profileSnap = await getDoc(profileRef);
+
+                if (profileSnap.exists()) {
+                    const userData = profileSnap.data();
+                    if (userData.role === 'mentor') {
+                        // KICK OUT: If they are a mentor, send them to their own dashboard
+                        alert("Access Denied: Mentors cannot use the Student Dashboard.");
+                        window.location.href = './mentor_dashboard.html';
+                        return; // Stop the rest of the script from running
+                    }
+                }
+                // --- END MENTOR CHECK ---
+
                 currentUserId = user.uid;
                 console.log("Anonymous User ID:", currentUserId);
 
-                // This is the CRITICAL part:
-                // We now wait for the profile to exist before doing anything else.
+                // Wait for student profile to exist/be created
                 await ensureUserProfile(user.uid);
-                // ensureUserProfile() will handle setting the anonymous name and UI
 
-                // Now that we are sure the user profile exists, we can safely
-                // initialize all Firestore listeners and data-dependent widgets.
+                // Initialize Listeners and Widgets
                 listenForNotifications(user.uid);
                 listenToAllProfiles();
                 listenToChannels();
+                listenForStudentAppointments(); // Ensure this is called here
 
                 initializeAssignments();
                 initializeJournaling();
                 initializeScreening();
                 initializeHealthWidget();
-                initAdminNotifications(); // <-- We CALL the function here
+                initAdminNotifications();
 
             } else {
-                // This 'else' block now handles the initial sign-in
+                // Handle initial sign-in logic (Anonymous for students)
                 currentUserId = null;
                 currentUserAnonymousName = "Guest";
                 const userNameElement = document.getElementById('user-anonymous-name');
@@ -2217,7 +2229,7 @@
                         try {
                             await signInAnonymously(auth);
                         } catch (anonError) {
-                            console.error("Fallback anonymous sign-in also failed.", anonError);
+                            console.error("Fallback anonymous sign-in failed.", anonError);
                         }
                     }
                 }
