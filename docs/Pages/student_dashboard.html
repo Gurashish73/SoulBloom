@@ -2040,7 +2040,7 @@
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, doc, updateDoc, deleteDoc, setDoc, increment }
+        import { getFirestore, collection, addDoc, where,query, onSnapshot, serverTimestamp, doc, updateDoc, deleteDoc, setDoc, increment }
             from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- PDF.js Import ---
@@ -6034,26 +6034,67 @@ Use these when you don't know what to write.
             });
         }
 
-        // 3. Booking Action
-        async function bookSession(slotId) {
-            if(!confirm("Book this session?")) return;
+        // --- UPDATED: Booking Action with Clash Detection & Tab Switch ---
+        window.bookSession = async (slotId) => {
+            if (!currentUserId) return alert("Please sign in to book.");
+            if (!confirm("Book this session?")) return;
+
             try {
-                // Need 'doc' and 'updateDoc' from your imports. 
-                // If they aren't imported at top, this will fail.
-                // Assuming your imports are standard:
-                await updateDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/appointments/${slotId}`), {
+                // 1. Fetch details of the target slot to get its time
+                const targetApptRef = doc(db, `artifacts/${sanitizedAppId}/public/data/appointments/${slotId}`);
+                const targetSnap = await getDoc(targetApptRef);
+                
+                if (!targetSnap.exists()) return alert("Session no longer available.");
+                
+                const targetData = targetSnap.data();
+                const newSessionTime = targetData.startTime.toDate();
+                const bufferMs = 30 * 60000; // 30-minute window
+
+                // 2. Check student's schedule for conflicts
+                const apptRef = collection(db, `artifacts/${sanitizedAppId}/public/data/appointments`);
+                const q = query(
+                    apptRef, 
+                    where("studentId", "==", currentUserId), 
+                    where("status", "==", "booked")
+                );
+                
+                const existingBookings = await getDocs(q);
+                let hasClash = false;
+                let clashingTime = "";
+
+                existingBookings.forEach(doc => {
+                    const existingTime = doc.data().startTime.toDate();
+                    const diff = Math.abs(newSessionTime - existingTime);
+                    
+                    if (diff < bufferMs) {
+                        hasClash = true;
+                        clashingTime = existingTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    }
+                });
+
+                if (hasClash) {
+                    return alert(`Schedule Conflict! You already have a session at ${clashingTime}.`);
+                }
+
+                // 3. No clash? Proceed with booking
+                await updateDoc(targetApptRef, {
                     status: 'booked',
                     studentId: currentUserId,
-                    studentName: currentUserAnonymousName || 'Student'
+                    studentName: currentUserAnonymousName || 'Student',
+                    bookedAt: serverTimestamp()
                 });
-                alert("Session Booked!");
-                // Auto switch tab
-                document.getElementById('btn-tab-booked').click();
-            } catch(e) {
-                console.error(e);
-                alert("Error booking session.");
+
+                alert("Session Booked Successfully!");
+
+                // 4. UI Switch: Auto switch to the 'My Sessions' tab
+                const bookedTabBtn = document.getElementById('btn-tab-booked');
+                if (bookedTabBtn) bookedTabBtn.click();
+
+            } catch (e) {
+                console.error("Booking Error:", e);
+                alert("Error booking session. Please try again.");
             }
-        }
+        };
 
         // 4. Safe Toast
         function showSafeToast(title, msg) {
