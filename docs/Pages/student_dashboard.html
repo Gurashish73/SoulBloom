@@ -1136,7 +1136,48 @@
                             </span>
                         </div>
                     </div>
+                    
+                    <div class="max-w-7xl mx-auto relative z-10 mb-8">
+    
+                        <div class="mt-8 mb-4">
+                            <h1 id="greeting-text" class="text-4xl font-vt323 text-white mb-1">Welcome back!</h1>
+                            <p class="text-gray-400 font-roboto">Let's make today a good one.</p>
+                        </div>
 
+                        <div class="widget glass p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 border border-white/10 shadow-lg">
+                            <div class="flex-1 text-center md:text-left">
+                                <h3 class="text-2xl font-bold flex items-center justify-center md:justify-start gap-2 text-white">
+                                    <i data-lucide="smile-plus" class="w-6 h-6 text-fuchsia-400"></i>
+                                    Mood Log
+                                </h3>
+                                <p class="text-gray-400 mt-1 text-sm">How are you feeling right now?</p>
+                            </div>
+                            
+                            <div class="flex flex-wrap justify-center gap-3">
+                                <button onclick="window.logMood('Happy', '😄', 5)" class="mood-btn flex flex-col items-center justify-center w-16 h-16 bg-white/5 rounded-xl hover:bg-green-500/20 hover:scale-105 transition-all duration-200 border border-white/5 group">
+                                    <div class="text-2xl mb-1 group-hover:animate-bounce">😄</div>
+                                    <span class="text-[10px] text-gray-500 group-hover:text-green-300 font-bold uppercase tracking-wider">Happy</span>
+                                </button>
+                                <button onclick="window.logMood('Calm', '😌', 4)" class="mood-btn flex flex-col items-center justify-center w-16 h-16 bg-white/5 rounded-xl hover:bg-blue-500/20 hover:scale-105 transition-all duration-200 border border-white/5 group">
+                                    <div class="text-2xl mb-1 group-hover:animate-pulse">😌</div>
+                                    <span class="text-[10px] text-gray-500 group-hover:text-blue-300 font-bold uppercase tracking-wider">Calm</span>
+                                </button>
+                                <button onclick="window.logMood('Tired', '😴', 3)" class="mood-btn flex flex-col items-center justify-center w-16 h-16 bg-white/5 rounded-xl hover:bg-yellow-500/20 hover:scale-105 transition-all duration-200 border border-white/5 group">
+                                    <div class="text-2xl mb-1">😴</div>
+                                    <span class="text-[10px] text-gray-500 group-hover:text-yellow-300 font-bold uppercase tracking-wider">Tired</span>
+                                </button>
+                                <button onclick="window.logMood('Anxious', '😰', 2)" class="mood-btn flex flex-col items-center justify-center w-16 h-16 bg-white/5 rounded-xl hover:bg-orange-500/20 hover:scale-105 transition-all duration-200 border border-white/5 group">
+                                    <div class="text-2xl mb-1 group-hover:animate-shake">😰</div>
+                                    <span class="text-[10px] text-gray-500 group-hover:text-orange-300 font-bold uppercase tracking-wider">Anxious</span>
+                                </button>
+                                <button onclick="window.logMood('Sad', '😔', 1)" class="mood-btn flex flex-col items-center justify-center w-16 h-16 bg-white/5 rounded-xl hover:bg-red-500/20 hover:scale-105 transition-all duration-200 border border-white/5 group">
+                                    <div class="text-2xl mb-1">😔</div>
+                                    <span class="text-[10px] text-gray-500 group-hover:text-red-300 font-bold uppercase tracking-wider">Sad</span>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
                     <!-- Main Dashboard Grid -->
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-6 mt-6">
 
@@ -1973,7 +2014,7 @@
 
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, doc, updateDoc, deleteDoc, setDoc }
+        import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, doc, updateDoc, deleteDoc, setDoc, increment }
             from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- PDF.js Import ---
@@ -2869,6 +2910,7 @@
             document.getElementById('chat-user-anonymous-name').textContent = name;
             dashboardProfilePicEmoji.textContent = pic;
             chatProfilePicEmoji.textContent = pic;
+            updateGreeting(name);
         }
 
 
@@ -5983,6 +6025,77 @@ Use these when you don't know what to write.
                 clearInterval(checkAuthInterval);
             }
         }, 1000);
+        // --- 1. Dynamic Greeting Logic ---
+        function updateGreeting(name) {
+            const greetingElement = document.getElementById('greeting-text');
+            if (greetingElement) {
+                const hour = new Date().getHours();
+                let greeting = 'Welcome back';
+                if (hour < 12) greeting = 'Good Morning';
+                else if (hour < 18) greeting = 'Good Afternoon';
+                else greeting = 'Good Evening';
+                
+                // Use the name if available
+                greetingElement.textContent = name ? `${greeting}, ${name}!` : `${greeting}!`;
+            }
+        }
+
+        // --- 2. Mood Logger (With 3-Hour Limit & Separate XP) ---
+        window.logMood = async (mood, emoji, score) => {
+            if (!currentUserId) return showNotification("Please sign in to log mood.", "error");
+
+            // Check for 3-Hour Cooldown
+            if (currentUserProfile && currentUserProfile.lastMoodLogAt) {
+                const lastLog = currentUserProfile.lastMoodLogAt.toDate(); // Convert Firestore Timestamp to JS Date
+                const now = new Date();
+                const diffInHours = (now - lastLog) / (1000 * 60 * 60);
+
+                if (diffInHours < 3) {
+                    const remainingMinutes = Math.ceil((3 - diffInHours) * 60);
+                    showNotification(`⏳ Please wait ${remainingMinutes} mins before logging mood again.`, "error");
+                    return; // Stop execution here
+                }
+            }
+
+            try {
+                // A. Save to History Collection (for graphs/records)
+                await addDoc(collection(db, `artifacts/${sanitizedAppId}/users/${currentUserId}/mood_logs`), {
+                    mood, emoji, score, createdAt: serverTimestamp()
+                });
+                
+                // B. Update Profile (Add Separate XP & Timestamp)
+                const profileRef = doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${currentUserId}`);
+                await updateDoc(profileRef, {
+                    moodLoginXP: increment(10), // SAVED SEPARATELY (Not wateringXP)
+                    lastMood: mood,
+                    lastMoodLogAt: serverTimestamp() // Save time to check next login
+                });
+
+                showNotification(`Mood logged! +10 Mood XP earned 🌟`);
+
+                // C. Auto-Open Blossom AI if feeling low (Score 1 or 2)
+                if (score <= 2) {
+                    const aiChatWindow = document.getElementById('ai-chat-window');
+                    const toggleBtn = document.getElementById('ai-chat-toggle-btn');
+                    
+                    // Open window if closed
+                    if(aiChatWindow.classList.contains('hidden')){
+                        toggleBtn.click(); 
+                    }
+                    
+                    // Pre-fill the input
+                    const input = document.getElementById('ai-chat-input');
+                    if(input) {
+                        input.value = `I'm feeling ${mood.toLowerCase()} right now...`;
+                        input.focus();
+                    }
+                }
+
+            } catch (e) {
+                console.error("Mood Log Error:", e);
+                showNotification("Error logging mood.", "error");
+            }
+        }
     </script>
     <script>
         const swipeTarget = document.getElementById('main-content');
