@@ -6066,16 +6066,15 @@ Use these when you don't know what to write.
         window.logMood = async (mood, emoji, score) => {
             if (!currentUserId) return showNotification("Please sign in to log mood.", "error");
 
-            // 1. Check for 3-Hour Cooldown
+            // 1. Check if XP has already been earned TODAY
+            let earnXP = true;
             if (currentUserProfile && currentUserProfile.lastMoodLogAt) {
-                const lastLog = currentUserProfile.lastMoodLogAt.toDate();
-                const now = new Date();
-                const diffInHours = (now - lastLog) / (1000 * 60 * 60);
-
-                if (diffInHours < 3) {
-                    const remainingMinutes = Math.ceil((3 - diffInHours) * 60);
-                    showNotification(`⏳ Please wait ${remainingMinutes} mins before logging mood again.`, "error");
-                    return;
+                const lastLog = currentUserProfile.lastMoodLogAt.toDate(); // Convert Firestore timestamp
+                const today = new Date();
+                
+                // Compare calendar dates (e.g., "Mon Feb 15 2026" === "Mon Feb 15 2026")
+                if (lastLog.toDateString() === today.toDateString()) {
+                    earnXP = false; // Already logged today
                 }
             }
 
@@ -6090,11 +6089,14 @@ Use these when you don't know what to write.
             if(btnContainer && resContainer) {
                 btnContainer.classList.add('hidden');
                 resContainer.classList.remove('hidden');
-                // Little delay for fade-in effect
                 setTimeout(() => resContainer.classList.remove('opacity-0'), 50);
                 
                 if(subtitle) subtitle.textContent = "Mood tracked successfully.";
-                if(emojiDisplay) emojiDisplay.textContent = emoji;
+                // Add bounce initially
+                if(emojiDisplay) {
+                    emojiDisplay.textContent = emoji;
+                    emojiDisplay.classList.add('animate-bounce'); 
+                }
                 if(textDisplay) textDisplay.textContent = mood;
             }
 
@@ -6102,30 +6104,47 @@ Use these when you don't know what to write.
             try {
                 const prompt = `Generate a very short, warm, and comforting 1-sentence motivational quote for a student who is feeling ${mood} right now. No hashtags.`;
                 const quote = await getGeminiResponse(prompt);
+                
                 if(quoteDisplay) quoteDisplay.textContent = `"${quote}"`;
+                if(emojiDisplay) emojiDisplay.classList.remove('animate-bounce'); // Stop bounce
+
             } catch (e) {
                 console.error("Quote gen failed", e);
                 if(quoteDisplay) quoteDisplay.textContent = "Take it one step at a time. You've got this.";
+                if(emojiDisplay) emojiDisplay.classList.remove('animate-bounce'); // Stop bounce
             }
 
             try {
-                // 4. Save to History
+                // 4. Save to History (We ALWAYS save the log record)
                 await addDoc(collection(db, `artifacts/${sanitizedAppId}/users/${currentUserId}/mood_logs`), {
                     mood, emoji, score, createdAt: serverTimestamp()
                 });
                 
-                // 5. Update Profile (XP & Timestamp)
+                // 5. Update Profile
                 const profileRef = doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${currentUserId}`);
-                await updateDoc(profileRef, {
-                    moodLoginXP: increment(10),
+                
+                // Prepare update data
+                const updateData = {
                     lastMood: mood,
-                    lastMoodLogAt: serverTimestamp()
-                });
+                    lastMoodLogAt: serverTimestamp() // Always update the time
+                };
 
-                showNotification(`+10 Mood XP earned 🌟`);
-                lucide.createIcons(); // Refresh icons in the result view
+                // Only add XP if it's a new day
+                if (earnXP) {
+                    updateData.moodLoginXP = increment(10);
+                }
 
-                // 6. Auto-Open Blossom AI if feeling low (Score 1 or 2)
+                await updateDoc(profileRef, updateData);
+
+                if (earnXP) {
+                    showNotification(`+10 Mood XP earned! (Daily Bonus) 🌟`);
+                } else {
+                    showNotification(`Mood logged! (Daily XP limit reached)`);
+                }
+
+                lucide.createIcons(); 
+
+                // 6. Auto-Open Blossom AI if feeling low
                 if (score <= 2) {
                     const aiChatWindow = document.getElementById('ai-chat-window');
                     const toggleBtn = document.getElementById('ai-chat-toggle-btn');
@@ -6139,7 +6158,7 @@ Use these when you don't know what to write.
                             input.value = `I'm feeling ${mood.toLowerCase()} right now...`;
                             input.focus();
                         }
-                    }, 1500); // Slight delay so they read the quote first
+                    }, 1500); 
                 }
 
             } catch (e) {
@@ -6189,5 +6208,4 @@ Use these when you don't know what to write.
         }
     </script>
 </body>
-
 </html>
