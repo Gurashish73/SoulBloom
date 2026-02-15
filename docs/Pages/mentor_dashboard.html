@@ -607,19 +607,55 @@
         
         window.addAppointmentSlot = async () => {
             const dateVal = document.getElementById('appt-date').value;
-            if(!dateVal) return window.showToast("Please select a date/time.", "error");
+            if(!dateVal) return window.showToast("Please select a date/time", "error");
+            
+            const newSlotTime = new Date(dateVal);
+            const bufferMinutes = 30;
+
+            // Calculate the 30-minute window (Before and After)
+            const minBuffer = new Date(newSlotTime.getTime() - bufferMinutes * 60000);
+            const maxBuffer = new Date(newSlotTime.getTime() + bufferMinutes * 60000);
+
             try {
-                // Uses the REAL mentor name
+                const apptRef = collection(db, `artifacts/${sanitizedAppId}/public/data/appointments`);
+                
+                // Query: Any slot for THIS mentor where startTime is within the buffer window
+                const clashQuery = query(
+                    apptRef, 
+                    where("mentorId", "==", currentMentor.id),
+                    where("startTime", ">", Timestamp.fromDate(minBuffer)),
+                    where("startTime", "<", Timestamp.fromDate(maxBuffer))
+                );
+
+                const clashSnap = await getDocs(clashQuery);
+
+                if (!clashSnap.empty) {
+                    // Find the clashing slot time for a helpful message
+                    const clashingSlot = clashSnap.docs[0].data();
+                    const clashingTime = clashingSlot.startTime.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    
+                    window.showToast(`Schedule conflict! Too close to your ${clashingTime} session.`, "error");
+                    document.getElementById('appt-date').style.borderColor = "#ef4444";
+                    return; 
+                }
+
+                // Proceed with creation if no clash
                 await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/appointments`), {
-                    startTime: new Date(dateVal), 
+                    startTime: newSlotTime,
                     status: 'open', 
-                    mentorName: currentMentor.name, // <--- REAL NAME
-                    mentorId: currentMentor.id,     // <--- REAL ID
+                    mentorName: currentMentor.name,
+                    mentorId: currentMentor.id,
                     createdAt: serverTimestamp()
                 });
+
                 document.getElementById('appt-date').value = '';
-                window.showToast("Slot Added Successfully!", "success");
-            } catch(e) { console.error(e); window.showToast("Error creating slot", "error"); }
+                document.getElementById('appt-date').style.borderColor = "rgba(255,255,255,0.1)";
+                window.showToast("Slot successfully added to your schedule.", "success");
+
+            } catch(e) { 
+                console.error("Slot Error:", e); 
+                window.showToast("Error checking schedule availability", "error"); 
+            }
         };
 
         window.rescheduleAppt = (id) => { currentRescheduleId = id; document.getElementById('reschedule-modal').classList.remove('hidden'); };
