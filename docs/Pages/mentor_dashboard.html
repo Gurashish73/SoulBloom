@@ -243,7 +243,7 @@
         let currentRescheduleId = null; 
         
         // MENTOR IDENTITY (New Feature)
-        let currentMentor = { id: null, name: "Staff Member" };
+        window.currentMentor = { id: null, name: "Staff Member" };
 
         // --- INIT FLATPICKR ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -490,9 +490,12 @@
         }
 
         window.renderFlags = () => {
+            // 1. Get Global ID
+            const myID = window.currentMentor ? window.currentMentor.id : null;
             const tbody = document.getElementById('flagged-table-body');
             const filterVal = document.getElementById('flag-filter').value;
             
+            // Combine Data Sources
             const criticalReports = allReports
                 .filter(r => (r.phqScore >= 15 || r.gadScore >= 15) && !r.isGraphOnly) 
                 .map(r => ({
@@ -502,38 +505,56 @@
                     message: `CRITICAL SCREENING: PHQ-9: ${r.phqScore}, GAD-7: ${r.gadScore}`,
                     timestamp: r.createdAt,
                     isReport: true,
-                    realReportId: r.id
+                    realReportId: r.id,
+                    // Preserve assignment info if it exists on the report
+                    assignedMentorId: r.assignedMentorId || null,
+                    assignedMentorName: r.assignedMentorName || null
                 }));
 
             let combinedData = [...allFlags, ...criticalReports];
+
+            // Sort by Time
             combinedData.sort((a, b) => {
                 const timeA = a.timestamp?.seconds || (a.timestamp?.toDate ? a.timestamp.toDate().getTime()/1000 : 0);
                 const timeB = b.timestamp?.seconds || (b.timestamp?.toDate ? b.timestamp.toDate().getTime()/1000 : 0);
                 return timeB - timeA;
             });
+
+            // Filter by Priority
             const filtered = combinedData.filter(f => {
                 if (filterVal === 'all') return true;
                 return f.priority === filterVal;
             });
 
-            document.getElementById('stat-alerts').innerText = filtered.length; 
-            if (filtered.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No flags match this filter.</td></tr>`; return; }
+            // Update Stats & Empty State
+            const statAlerts = document.getElementById('stat-alerts');
+            if (statAlerts) statAlerts.innerText = filtered.length; 
+            
+            if (filtered.length === 0) { 
+                tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No flags match this filter.</td></tr>`; 
+                return; 
+            }
 
             let html = '';
+            
             filtered.forEach(d => {
                 let actionButtons = '';
+                
+                // --- LOGIC: Check Ownership ---
+                const isUnclaimed = !d.assignedMentorId;
+                const isMine = d.assignedMentorId === myID;
 
-                if (!d.assignedMentorId) {
-                    // 1. Alert is UNCLAIMED - Show Claim Button
+                if (isUnclaimed) {
+                    // 1. Unclaimed -> Show CLAIM
                     actionButtons = `
                         <button onclick="window.claimAlert('${d.id}')" 
-                                class="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-[10px] font-bold uppercase transition-all active:scale-95">
+                                class="bg-green-600 hover:bg-green-500 text-white px-3 py-1 rounded text-[10px] font-bold uppercase transition-all active:scale-95 shadow-lg shadow-green-900/20">
                             Claim Alert
                         </button>`;
-                } else {
-                    // 2. Alert is CLAIMED BY YOU - Show Action Buttons
+                } else if (isMine) {
+                    // 2. Claimed by ME -> Show View / Resolve
                     actionButtons = `
-                        <div class="flex gap-2">
+                        <div class="flex gap-2 justify-end">
                             <button onclick="window.checkReport('${d.userId}')" 
                                     class="bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded text-[10px] font-bold uppercase">
                                 View
@@ -543,7 +564,12 @@
                                 Resolve
                             </button>
                         </div>`;
+                } else {
+                    // 3. Claimed by OTHERS -> Show Text
+                    actionButtons = `<span class="text-gray-500 text-[10px] italic">Claimed by ${d.assignedMentorName || 'others'}</span>`;
                 }
+
+                // formatting dates and colors
                 let dateStr = 'Just now';
                 if (d.timestamp?.toDate) dateStr = d.timestamp.toDate().toLocaleString();
                 else if (d.timestamp instanceof Date) dateStr = d.timestamp.toLocaleString();
@@ -553,24 +579,27 @@
                 else if(d.priority === 'medium') dotColor = 'bg-orange-500';
                 else if(d.priority === 'low') dotColor = 'bg-yellow-500';
 
+                // --- HTML GENERATION ---
                 html += `
-                    <tr class="hover:bg-white/5 transition border-b border-white/5" id="row-${d.id}">
+                    <tr class="hover:bg-white/5 transition border-b border-white/5 group" id="row-${d.id}">
                         <td class="px-4 py-3"><div class="w-3 h-3 rounded-full ${dotColor} mx-auto" title="Priority: ${d.priority}"></div></td>
                         <td class="px-4 py-3 text-gray-400 font-mono text-xs">${dateStr}</td>
-                        <td class="px-4 py-3 font-mono text-xs text-blue-300">${d.userId ? d.userId.substring(0,8) : 'Unknown'}...</td>
-                        <td class="px-4 py-3 text-gray-200 italic max-w-xs truncate" title="${d.message}">"${d.message}"</td>
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3 font-mono text-xs text-blue-300">
                             <div class="flex items-center gap-2">
-                                <button onclick="window.checkReport('${d.userId}')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded text-xs font-bold">View</button>
-                                <button onclick="window.openResolveModal('${d.id}', '${d.userId}')" class="bg-red-600/80 hover:bg-red-500 text-white px-3 py-1 rounded text-xs font-bold shadow-lg shadow-red-900/20">Action</button>
+                                ${isMine ? '<div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>' : ''}
+                                ${d.userId ? d.userId.substring(0,8) : 'Unknown'}...
                             </div>
+                        </td>
+                        <td class="px-4 py-3 text-gray-200 italic max-w-xs truncate" title="${d.message}">"${d.message}"</td>
+                        
+                        <td class="px-4 py-3 text-right">
+                            ${actionButtons}
                         </td>
                     </tr>
                 `;
             });
             tbody.innerHTML = html;
         };
-
         // --- 4. APPOINTMENTS ---
         // --- CONSOLIDATED: Private Appointments Listener with Student Info ---
         function listenForAppointments() {
