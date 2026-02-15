@@ -32,12 +32,22 @@
 <body class="min-h-screen flex flex-col">
 
     <div id="garden-bg"></div>
+    <div id="toast-container" class="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
+    <style>
+        /* Add this to your existing <style> block or header */
+        .toast-enter { transform: translateX(100%); opacity: 0; }
+        .toast-enter-active { transform: translateX(0); opacity: 1; transition: all 0.3s ease-out; }
+        .toast-exit { transform: translateX(100%); opacity: 0; transition: all 0.3s ease-in; }
+    </style>
 
     <header class="sticky top-0 z-50 w-full glass border-b border-white/10">
         <div class="container mx-auto px-6 py-4 flex justify-between items-center">
             <div class="flex items-center gap-3">
                 <i data-lucide="sprout" class="w-8 h-8 text-green-400"></i>
-                <span class="text-2xl font-bold font-playfair text-white">Soul Bloom <span class="text-base font-sans font-normal text-gray-400 ml-2">| Mentor Console</span></span>
+                <div class="flex flex-col">
+                    <span class="text-2xl font-bold font-playfair text-white">Soul Bloom</span>
+                    <span class="text-xs font-sans text-blue-300">Logged in as: <span id="current-mentor-name">Loading...</span></span>
+                </div>
             </div>
             <div class="flex items-center gap-4">
                 <button id="btn-clear" onclick="window.clearMockData()" class="hidden md:block bg-gray-600/20 border border-gray-500 text-gray-300 hover:bg-gray-600 hover:text-white px-3 py-1 rounded text-xs font-bold transition">
@@ -204,7 +214,7 @@
     </div>
 
     <script type="module">
-        import { getFirestore, doc, collection, query, onSnapshot, getDocs, where, addDoc, deleteDoc, updateDoc, getDoc, serverTimestamp, orderBy, limit, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, query, onSnapshot, getDocs, where, addDoc, deleteDoc, updateDoc, serverTimestamp, orderBy, limit, Timestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
@@ -231,16 +241,17 @@
         let currentFlagId = null;
         let currentStudentId = null;
         let currentRescheduleId = null; 
+        
+        // MENTOR IDENTITY (New Feature)
+        let currentMentor = { id: null, name: "Staff Member" };
 
         // --- INIT FLATPICKR ---
         document.addEventListener('DOMContentLoaded', () => {
-            const commonConfig = {
-                enableTime: true, dateFormat: "Y-m-d H:i", minDate: "today", time_24hr: false, allowInput: true, clickOpens: false, wrap: true        
-            };
+            const commonConfig = { enableTime: true, dateFormat: "Y-m-d H:i", minDate: "today", time_24hr: false, allowInput: true, clickOpens: false, wrap: true };
             const fp1 = flatpickr(".flatpickr-wrapper", commonConfig);
             const fp2 = flatpickr(".priority-picker", commonConfig);
             const fp3 = flatpickr(".reschedule-picker", commonConfig);
-
+            
             function setupSmartInput(inputSelector, fpInstance) {
                 const input = document.querySelector(inputSelector);
                 if(!input) return;
@@ -264,6 +275,81 @@
             setupSmartInput("#priority-date-input", fp2);
             setupSmartInput("#reschedule-date-input", fp3);
         });
+
+        // --- TOAST NOTIFICATIONS (Helper) ---
+        window.showToast = (message, type = 'success') => {
+            const container = document.getElementById('toast-container');
+            if(!container) {
+                const c = document.createElement('div');
+                c.id = 'toast-container';
+                c.className = "fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none";
+                document.body.appendChild(c);
+            }
+            const el = document.createElement('div');
+            const bgClass = type === 'error' ? 'bg-red-600' : (type === 'info' ? 'bg-blue-600' : 'bg-green-600');
+            const icon = type === 'error' ? 'alert-circle' : (type === 'info' ? 'info' : 'check-circle');
+            el.className = `${bgClass} text-white px-4 py-3 rounded-lg shadow-xl flex items-center gap-3 min-w-[300px] toast-enter pointer-events-auto transition-all duration-300`;
+            el.innerHTML = `<i data-lucide="${icon}" class="w-5 h-5"></i><span class="font-medium text-sm">${message}</span>`;
+            document.getElementById('toast-container').appendChild(el);
+            lucide.createIcons({ nodes: [el] });
+            
+            // Animation
+            setTimeout(() => { el.style.transform = "translateX(0)"; el.style.opacity = "1"; }, 10);
+            
+            // Remove
+            setTimeout(() => { 
+                el.style.transform = "translateX(100%)"; 
+                el.style.opacity = "0"; 
+                setTimeout(() => el.remove(), 300); 
+            }, 3000);
+        };
+
+        // --- AUTH & PROFILE (Updated: Auto-Name, No Prompt) ---
+        async function ensureMentorProfile(user) {
+            currentMentor.id = user.uid;
+            const profileRef = doc(db, `artifacts/${sanitizedAppId}/public/data/profiles/${user.uid}`);
+            const snap = await getDoc(profileRef);
+
+            if (snap.exists()) {
+                // CASE 1: Returning User - Load existing name
+                const data = snap.data();
+                currentMentor.name = data.name || "Mentor";
+                
+                if (data.role === 'student') {
+                     window.showToast("Warning: Student account detected.", "error");
+                }
+            } else {
+                // CASE 2: First Time User - Auto-generate name (No Prompt)
+                
+                // Try getting name from Google Auth
+                let name = user.displayName;
+                
+                // If not found, generate "Dr. [EmailName]" from email
+                if (!name && user.email) {
+                    const emailName = user.email.split('@')[0]; // Get text before @
+                    // Capitalize first letter (e.g., "sarah" -> "Sarah")
+                    const formattedName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+                    name = `Dr. ${formattedName}`;
+                }
+                
+                // Fallback
+                if (!name) name = "Staff Member";
+                
+                // Save to database silently
+                await setDoc(profileRef, {
+                    name: name,
+                    role: 'mentor',
+                    email: user.email || 'anon',
+                    joinedAt: serverTimestamp()
+                });
+                currentMentor.name = name;
+                window.showToast(`Welcome, ${name}!`, "success");
+            }
+            
+            // Update the header display
+            const headerNameEl = document.getElementById('current-mentor-name');
+            if(headerNameEl) headerNameEl.innerText = currentMentor.name;
+        }
 
         // --- 1. ANALYTICS ---
         async function fetchAnalytics() {
@@ -295,7 +381,6 @@
 
             const filteredData = allReports.filter(r => {
                 if (!r.createdAt) return false;
-                if (r.createdAt === null) return true;
                 const rDate = r.createdAt.toDate ? r.createdAt.toDate() : new Date(r.createdAt);
                 return rDate >= cutoffDate;
             });
@@ -305,7 +390,6 @@
         function processStats(data) {
             let totalPHQ = 0, totalGAD = 0;
             let severity = { normal: 0, mild: 0, moderate: 0, severe: 0 };
-            
             if (data.length === 0) {
                 document.getElementById('stat-reports').innerText = "0";
                 document.getElementById('stat-anxiety').innerText = "0.0"; 
@@ -313,7 +397,6 @@
                 updateChart(severity);
                 return;
             }
-
             data.forEach(r => {
                 const p = r.phqScore || 0;
                 totalPHQ += p;
@@ -332,7 +415,6 @@
             updateChart(severity);
         }
 
-        // --- 2. CHART ---
         let wellnessChartInstance = null;
         function updateChart(data) {
             const ctx = document.getElementById('wellnessChart').getContext('2d');
@@ -368,7 +450,6 @@
             const tbody = document.getElementById('flagged-table-body');
             const filterVal = document.getElementById('flag-filter').value;
             
-            // Critical Reports converted to Flags (Filter out reports marked isGraphOnly)
             const criticalReports = allReports
                 .filter(r => (r.phqScore >= 15 || r.gadScore >= 15) && !r.isGraphOnly) 
                 .map(r => ({
@@ -382,24 +463,18 @@
                 }));
 
             let combinedData = [...allFlags, ...criticalReports];
-
             combinedData.sort((a, b) => {
                 const timeA = a.timestamp?.seconds || (a.timestamp?.toDate ? a.timestamp.toDate().getTime()/1000 : 0);
                 const timeB = b.timestamp?.seconds || (b.timestamp?.toDate ? b.timestamp.toDate().getTime()/1000 : 0);
                 return timeB - timeA;
             });
-
             const filtered = combinedData.filter(f => {
                 if (filterVal === 'all') return true;
                 return f.priority === filterVal;
             });
 
             document.getElementById('stat-alerts').innerText = filtered.length; 
-
-            if (filtered.length === 0) { 
-                tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No flags match this filter.</td></tr>`; 
-                return; 
-            }
+            if (filtered.length === 0) { tbody.innerHTML = `<tr><td colspan="5" class="px-4 py-8 text-center text-gray-500">No flags match this filter.</td></tr>`; return; }
 
             let html = '';
             filtered.forEach(d => {
@@ -417,11 +492,11 @@
                         <td class="px-4 py-3"><div class="w-3 h-3 rounded-full ${dotColor} mx-auto" title="Priority: ${d.priority}"></div></td>
                         <td class="px-4 py-3 text-gray-400 font-mono text-xs">${dateStr}</td>
                         <td class="px-4 py-3 font-mono text-xs text-blue-300">${d.userId ? d.userId.substring(0,8) : 'Unknown'}...</td>
-                        <td class="px-4 py-3 text-gray-200 italic">"${d.message}"</td>
+                        <td class="px-4 py-3 text-gray-200 italic max-w-xs truncate" title="${d.message}">"${d.message}"</td>
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-2">
-                                <button onclick="window.checkReport('${d.userId}')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded text-xs font-bold">View Report</button>
-                                <button onclick="window.openResolveModal('${d.id}', '${d.userId}')" class="bg-red-600/80 hover:bg-red-500 text-white px-3 py-1 rounded text-xs font-bold shadow-lg shadow-red-900/20">Take Action</button>
+                                <button onclick="window.checkReport('${d.userId}')" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded text-xs font-bold">View</button>
+                                <button onclick="window.openResolveModal('${d.id}', '${d.userId}')" class="bg-red-600/80 hover:bg-red-500 text-white px-3 py-1 rounded text-xs font-bold shadow-lg shadow-red-900/20">Action</button>
                             </div>
                         </td>
                     </tr>
@@ -433,35 +508,101 @@
         // --- 4. APPOINTMENTS ---
         function listenForAppointments() {
             const apptRef = collection(db, `artifacts/${sanitizedAppId}/public/data/appointments`);
+            
             onSnapshot(query(apptRef), (snapshot) => {
                 const list = document.getElementById('appointments-list');
                 const appts = [];
                 snapshot.forEach(doc => appts.push({ id: doc.id, ...doc.data() }));
+                
+                // Sort by time
                 appts.sort((a, b) => (a.startTime?.seconds || 0) - (b.startTime?.seconds || 0));
-                if (appts.length === 0) { list.innerHTML = `<p class="text-gray-500 text-xs text-center py-4">No sessions scheduled.</p>`; return; }
+                
+                if (appts.length === 0) { 
+                    list.innerHTML = `<p class="text-gray-500 text-xs text-center py-4">No sessions scheduled.</p>`; 
+                    return; 
+                }
+                
                 list.innerHTML = '';
+                
                 appts.forEach(a => {
                     const date = a.startTime?.toDate ? a.startTime.toDate() : new Date();
-                    const isPriority = a.status === 'booked' && a.mentorName.includes('Priority');
+                    const isPriority = a.status === 'booked' && (a.mentorName || '').includes('Priority');
                     const isBooked = a.status === 'booked';
+                    
+                    // Style logic
                     const borderClass = isPriority ? 'border-l-4 border-red-500' : (isBooked ? 'border-l-4 border-blue-500' : 'border-l-4 border-gray-500');
                     const statusText = isPriority ? 'Priority Session' : (isBooked ? 'Booked' : 'Open Slot');
+                    
+                    // --- NEW: Show Student ID if booked ---
+                    let studentInfoHTML = '';
+                    if (isBooked && a.studentId) {
+                        studentInfoHTML = `
+                            <div class="mt-1 flex items-center gap-1.5 bg-blue-900/20 px-2 py-1 rounded border border-blue-500/20 w-fit">
+                                <i data-lucide="user" class="w-3 h-3 text-blue-400"></i>
+                                <span class="text-xs text-blue-200 font-mono" title="${a.studentId}">
+                                    Student ID: ${a.studentId.substring(0, 8)}...
+                                </span>
+                            </div>
+                        `;
+                    } else if (isBooked) {
+                        // Fallback if booked but no ID found
+                        studentInfoHTML = `<div class="mt-1 text-xs text-gray-500 italic">Booked (Anonymous)</div>`;
+                    }
+
                     const div = document.createElement('div');
-                    div.className = `p-3 bg-white/5 rounded ${borderClass} flex justify-between items-center group relative`;
-                    div.innerHTML = `<div><div class="text-sm font-bold text-gray-200">${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div><div class="text-xs text-gray-400">${statusText}</div></div><div class="flex items-center gap-2">${isBooked ? `<div class="bg-gray-700 px-2 py-1 rounded text-xs text-gray-300 font-mono">${a.studentId ? a.studentId.substring(0,4) : 'User'}</div>` : ''}<div class="flex gap-1 ml-2"><button onclick="window.rescheduleAppt('${a.id}')" title="Reschedule" class="p-1 text-gray-500 hover:text-blue-400 transition"><i data-lucide="clock" class="w-4 h-4"></i></button><button onclick="window.cancelAppt('${a.id}')" title="Cancel" class="p-1 text-gray-500 hover:text-red-400 transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button></div></div>`;
+                    div.className = `p-3 bg-white/5 rounded ${borderClass} flex justify-between items-center group relative mb-2`;
+                    
+                    div.innerHTML = `
+                        <div>
+                            <div class="text-sm font-bold text-gray-200">
+                                ${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            </div>
+                            <div class="text-xs text-gray-400">${statusText}</div>
+                            
+                            ${studentInfoHTML}
+                        </div>
+                        
+                        <div class="flex items-center gap-2">
+                            <div class="flex gap-1 ml-2">
+                                <button onclick="window.rescheduleAppt('${a.id}')" title="Reschedule" class="p-1 text-gray-500 hover:text-blue-400 transition">
+                                    <i data-lucide="clock" class="w-4 h-4"></i>
+                                </button>
+                                <button onclick="window.cancelAppt('${a.id}')" title="Cancel" class="p-1 text-gray-500 hover:text-red-400 transition">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
                     list.appendChild(div);
                 });
                 lucide.createIcons();
             });
         }
         
+        window.addAppointmentSlot = async () => {
+            const dateVal = document.getElementById('appt-date').value;
+            if(!dateVal) return window.showToast("Please select a date/time.", "error");
+            try {
+                // Uses the REAL mentor name
+                await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/appointments`), {
+                    startTime: new Date(dateVal), 
+                    status: 'open', 
+                    mentorName: currentMentor.name, // <--- REAL NAME
+                    mentorId: currentMentor.id,     // <--- REAL ID
+                    createdAt: serverTimestamp()
+                });
+                document.getElementById('appt-date').value = '';
+                window.showToast("Slot Added Successfully!", "success");
+            } catch(e) { console.error(e); window.showToast("Error creating slot", "error"); }
+        };
+
         window.rescheduleAppt = (id) => { currentRescheduleId = id; document.getElementById('reschedule-modal').classList.remove('hidden'); };
         window.confirmReschedule = async () => {
             const dateInput = document.getElementById('reschedule-date-input').value;
-            if(!dateInput || !currentRescheduleId) return alert("Select a time.");
-            try { await updateDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/appointments/${currentRescheduleId}`), { startTime: new Date(dateInput) }); document.getElementById('reschedule-modal').classList.add('hidden'); currentRescheduleId = null; } catch(e) { console.error(e); alert("Error rescheduling"); }
+            if(!dateInput || !currentRescheduleId) return window.showToast("Select a time.", "error");
+            try { await updateDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/appointments/${currentRescheduleId}`), { startTime: new Date(dateInput) }); document.getElementById('reschedule-modal').classList.add('hidden'); currentRescheduleId = null; window.showToast("Rescheduled!", "success"); } catch(e) { console.error(e); window.showToast("Error rescheduling", "error"); }
         };
-        window.cancelAppt = async (id) => { if(!confirm("Cancel this session?")) return; try { await deleteDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/appointments/${id}`)); } catch(e) { console.error(e); alert("Error deleting"); } }
+        window.cancelAppt = async (id) => { if(!confirm("Cancel this session?")) return; try { await deleteDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/appointments/${id}`)); window.showToast("Session Cancelled", "info"); } catch(e) { console.error(e); window.showToast("Error deleting", "error"); } }
 
         // --- 5. VIEW REPORT ---
         window.checkReport = async (userId) => {
@@ -498,42 +639,43 @@
             try {
                 if (actionType === 'remind') {
                     await addDoc(collection(db, `artifacts/${sanitizedAppId}/users/${currentStudentId}/notifications`), {
-                        title: "Wellness Check-in", message: "Dr. Evans noticed you might be stressed. Please fill out your journal today.", type: "reminder", createdAt: serverTimestamp()
+                        title: "Wellness Check-in", 
+                        message: `${currentMentor.name} noticed you might be stressed. Please fill out your journal today.`, // <--- REAL NAME
+                        type: "reminder", 
+                        createdAt: serverTimestamp()
                     });
-                    alert("Notification Sent!");
+                    window.showToast("Notification Sent!", "success");
                     window.closeResolveModal();
                 } else if (actionType === 'book') {
                     const dateInput = document.getElementById('priority-date-input').value;
-                    if(!dateInput) { alert("Please select a date/time."); return; }
+                    if(!dateInput) { window.showToast("Please select a date/time.", "error"); return; }
+                    
                     await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/appointments`), {
-                        startTime: new Date(dateInput), status: 'booked', mentorName: "Dr. Evans (Priority)", studentId: currentStudentId, createdAt: serverTimestamp()
+                        startTime: new Date(dateInput), 
+                        status: 'booked', 
+                        mentorName: `${currentMentor.name} (Priority)`, // <--- REAL NAME
+                        mentorId: currentMentor.id,
+                        studentId: currentStudentId, 
+                        createdAt: serverTimestamp()
                     });
-                    alert("Priority Session Booked!");
+                    window.showToast("Priority Session Booked!", "success");
                     window.closeResolveModal();
                 } else if (actionType === 'resolve') {
-                    // --- CORRECTED LOGIC: Check for linked reports to ensure deletion updates the graph ---
                     if (currentFlagId.startsWith('screen_')) {
-                        // High Priority (Auto-Flag)
                         const realReportId = currentFlagId.split('screen_')[1];
                         await deleteDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports/${realReportId}`));
                     } else {
-                        // Medium/Low Priority (Manual Flag)
-                        // 1. Get flag to check for linkedReportId
                         const flagRef = doc(db, `artifacts/${sanitizedAppId}/public/data/flagged_users/${currentFlagId}`);
                         const flagSnap = await getDoc(flagRef);
-                        
                         if (flagSnap.exists() && flagSnap.data().linkedReportId) {
-                            // 2. Delete the linked report (updates graph)
                             await deleteDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports/${flagSnap.data().linkedReportId}`));
                         }
-                        
-                        // 3. Delete the flag itself
                         await deleteDoc(flagRef);
                     }
-                    alert("Alert Resolved & Removed from Stats.");
+                    window.showToast("Alert Resolved.", "success");
                     window.closeResolveModal();
                 }
-            } catch (e) { console.error("Action Error:", e); alert("Action Failed: " + e.message); }
+            } catch (e) { console.error("Action Error:", e); window.showToast("Action Failed", "error"); }
         };
 
         // --- 7. RESOURCES ---
@@ -568,36 +710,25 @@
         window.addResource = async () => {
             const title = document.getElementById('res-title').value;
             const url = document.getElementById('res-url').value;
-            if(!title || !url) return alert("Fill details");
+            if(!title || !url) return window.showToast("Please fill in both fields.", "error");
             try {
                 await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/resources`), {
                     title: title, url: url, type: 'link', createdAt: serverTimestamp()
                 });
                 document.getElementById('res-title').value = ""; document.getElementById('res-url').value = "";
-                const msg = document.getElementById('res-msg'); msg.classList.remove('hidden'); setTimeout(() => msg.classList.add('hidden'), 2000);
-            } catch(e) { console.error(e); alert("Error adding resource"); }
+                window.showToast("Resource Added!", "success");
+            } catch(e) { console.error(e); window.showToast("Error adding resource", "error"); }
         };
 
         window.deleteResource = async (id) => {
             if(!confirm("Remove this resource link?")) return;
             try {
                 await deleteDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/resources/${id}`));
-            } catch(e) { console.error(e); alert("Error removing resource"); }
+                window.showToast("Resource Removed.", "info");
+            } catch(e) { console.error(e); window.showToast("Error removing resource", "error"); }
         };
 
-        window.addAppointmentSlot = async () => {
-            const dateVal = document.getElementById('appt-date').value;
-            if(!dateVal) return alert("Select a date/time");
-            try {
-                await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/appointments`), {
-                    startTime: new Date(dateVal), status: 'open', mentorName: "Dr. Evans", createdAt: serverTimestamp()
-                });
-                document.getElementById('appt-date').value = '';
-                const msg = document.getElementById('appt-msg'); msg.classList.remove('hidden'); setTimeout(() => msg.classList.add('hidden'), 2000);
-            } catch(e) { console.error(e); alert("Error creating slot"); }
-        };
-
-        // --- CORRECTED SIMULATE LOGIC (Links Report to Flag) ---
+        // --- 8. SIMULATION TOOLS (Restored Fully) ---
         window.simulateFlag = async () => {
             const severities = [
                 { type: 'Critical', priority: 'high', phq: 22, gad: 19, msg: "I can't take this anymore. Everything is too much." },
@@ -623,13 +754,13 @@
                         message: scenario.msg, 
                         priority: scenario.priority, 
                         timestamp: serverTimestamp(),
-                        linkedReportId: reportRef.id // <--- THIS LINK IS CRITICAL
+                        linkedReportId: reportRef.id 
                     });
                 }
+                window.showToast("Simulation Created!", "info");
             } catch(e) { console.error(e); }
         };
 
-        // --- UPDATED SIMULATE GRAPH DATA LOGIC (Hides from Alerts) ---
         window.simulateGraphData = async () => {
             const batchSize = 30;
             const reportsRef = collection(db, `artifacts/${sanitizedAppId}/public/data/mental_health_reports`);
@@ -654,7 +785,7 @@
                 } catch(e) { console.log("Simulate error", e); }
             }
         };
-        
+
         window.clearMockData = async () => {
             if (!confirm("Delete simulated data?")) return;
             const btn = document.getElementById('btn-clear');
@@ -679,7 +810,7 @@
                 const deleteAlertPromises = snapAlerts.docs.map(doc => deleteDoc(doc.ref));
                 await Promise.all(deleteAlertPromises);
 
-                alert(`Cleared data!`);
+                window.showToast(`Cleared data!`, "success");
                 allReports = []; 
                 fetchAnalytics(); 
             } catch(e) { console.error("Clear Error:", e); } 
@@ -690,6 +821,7 @@
 
         onAuthStateChanged(auth, (user) => { 
             if(user) { 
+                ensureMentorProfile(user); // REAL LOGIN
                 fetchAnalytics(); 
                 listenForFlags(); 
                 listenForAppointments();
