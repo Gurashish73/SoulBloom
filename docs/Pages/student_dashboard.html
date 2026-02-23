@@ -1003,8 +1003,8 @@
                 display: block;
             }
         }
+        
     </style>
-
 </head>
 
 <body class="p-4 md:p-8">
@@ -3246,7 +3246,8 @@
         }
 
         function displayPeerChatMessage(messageData, isSameSender) {
-            const senderProfile = userProfilesCache[messageData.senderId] || { name: 'Unknown User', profilePic: '👤', role: 'member' };
+            // Fallbacks just in case data is missing
+            const senderProfile = userProfilesCache[messageData.senderId] || { name: messageData.username || 'Staff', profilePic: '🛡️', role: messageData.role || 'member' };
             const isCurrentUser = messageData.senderId === currentUserId;
 
             const messageContainer = document.createElement('div');
@@ -3254,10 +3255,23 @@
             messageContainer.dataset.senderId = messageData.senderId;
             if (isSameSender) messageContainer.classList.add('is-consecutive');
 
-            const timeString = new Date(messageData.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || '';
-            const avatarHTML = `<div class="chat-avatar ${isSameSender ? 'is-placeholder' : ''}" data-userid="${messageData.senderId}">${senderProfile.profilePic}</div>`;
+            // FIX 1: Safely handle Firebase Timestamps to prevent "Invalid Date"
+            let dateObj = new Date();
+            if (messageData.createdAt) {
+                dateObj = messageData.createdAt.toDate ? messageData.createdAt.toDate() : new Date(messageData.createdAt);
+            }
+            const timeString = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) || '';
+            
+            // FIX 2: Safely handle undefined profile pictures
+            const safeProfilePic = senderProfile.profilePic || (messageData.role === 'owner' ? '🛡️' : '👤');
+            const safeName = senderProfile.name || messageData.username || 'Staff Member';
+
+            const avatarHTML = `<div class="chat-avatar ${isSameSender ? 'is-placeholder' : ''}" data-userid="${messageData.senderId}">${safeProfilePic}</div>`;
             const roleIcons = { owner: `<i data-lucide="crown" class="w-4 h-4 text-amber-400" title="Owner"></i>`, moderator: `<i data-lucide="shield" class="w-4 h-4 text-blue-400" title="Moderator"></i>` };
-            const roleBadge = roleIcons[senderProfile.role] || '';
+            
+            // Check message role OR profile role
+            const actualRole = messageData.role === 'owner' ? 'owner' : senderProfile.role;
+            const roleBadge = roleIcons[actualRole] || '';
 
             let messageContentHTML = '';
 
@@ -3267,23 +3281,15 @@
                         return `<img src="${messageData.content}" alt="User image" class="chat-image"><p class="chat-text">${messageData.caption || ''}</p>`;
                     case 'audio':
                         if (!messageData.content) {
-                            console.warn('Audio message without content:', messageData);
                             return `<div class="chat-text text-sm text-red-400">[Audio unavailable]</div>`;
                         }
-                        // --- New Custom Player HTML ---
                         return `
                         <div class="custom-audio-player">
-                            <button class="audio-play-pause-btn">
-                                <i data-lucide="play" class="w-5 h-5"></i>
-                            </button>
-                            <div class="audio-timeline-container">
-                                <div class="audio-timeline-progress" style="width: 0%;"></div>
-                            </div>
+                            <button class="audio-play-pause-btn"><i data-lucide="play" class="w-5 h-5"></i></button>
+                            <div class="audio-timeline-container"><div class="audio-timeline-progress" style="width: 0%;"></div></div>
                             <span class="audio-time-display">0:00 / 0:00</span>
                             <audio class="hidden-audio-element" src="${messageData.content}" preload="metadata"></audio>
-                        </div>
-                        `;
-                    // --- End of New HTML ---
+                        </div>`;
                     case 'document':
                         return `<div class="document-bubble"><i data-lucide="file-text" class="w-8 h-8 text-gray-400"></i><span class="font-semibold truncate">${messageData.fileName}</span></div>`;
                     case 'sticker':
@@ -3300,7 +3306,9 @@
                 messageContentHTML = `
                     <div>
                         <div class="chat-sender-info">
-                            <span class="chat-sender-name ${isCurrentUser ? 'user' : ''}" data-userid="${messageData.senderId}">${isCurrentUser ? 'You' : senderProfile.name}</span>
+                            <span class="chat-sender-name ${isCurrentUser ? 'user' : ''} ${actualRole === 'owner' ? 'text-indigo-400 font-bold' : ''}" data-userid="${messageData.senderId}">
+                                ${isCurrentUser ? 'You' : safeName}
+                            </span>
                             <span class="role-badge">${roleBadge}</span>
                             <span class="chat-timestamp">${timeString}</span>
                         </div>
@@ -3309,22 +3317,20 @@
                 messageContainer.innerHTML = avatarHTML + messageContentHTML;
             }
 
-            const canDelete = currentUserProfile.role === 'owner' || currentUserProfile.role === 'moderator';
+            const canDelete = currentUserProfile && (currentUserProfile.role === 'owner' || currentUserProfile.role === 'moderator');
             if (canDelete) {
                 const actionsHTML = `<div class="message-actions">
                     <button class="delete-message-btn p-1 text-gray-400 hover:text-red-400" data-msg-id="${messageData.id}"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                 </div>`;
                 messageContainer.innerHTML += actionsHTML;
             }
+            
             mainChatMessages.appendChild(messageContainer);
 
-            // --- ADD THIS BLOCK ---
-            // Find and initialize any new audio players in this message
             const newPlayer = messageContainer.querySelector('.custom-audio-player');
-            if (newPlayer) {
-                initializeAudioPlayer(newPlayer);
+            if (newPlayer && typeof window.initializeAudioPlayer === 'function') {
+                window.initializeAudioPlayer(newPlayer);
             }
-            // --- END OF ADDED BLOCK ---
 
             lucide.createIcons({ nodes: [messageContainer] });
         }
@@ -3403,28 +3409,50 @@
             });
         }
 
-        function renderMembersList(profiles) {
-            const roles = { owner: [], moderator: [], member: [] };
-            profiles.forEach(p => { (roles[p.role] || roles.member).push(p); });
-            const roleOrder = ['owner', 'moderator', 'member'];
+       function renderMembersList(profiles) {
+            const roles = { owner: [], mentor: [], moderator: [], member: [] };
+            
+            // --- FIX: Filter out ghost duplicates ---
+            const uniqueMentors = new Set();
+            
+            profiles.forEach(p => { 
+                // If it is a generic default Staff name, only show ONE in the list
+                if (p.role === 'mentor' && (p.name === 'Staff Member' || p.name === 'Staff' || p.name === 'Mentor')) {
+                    if (!uniqueMentors.has('generic_staff')) {
+                        uniqueMentors.add('generic_staff');
+                        (roles[p.role] || roles.member).push(p);
+                    }
+                } else {
+                    // Keep everyone else normally
+                    (roles[p.role] || roles.member).push(p); 
+                }
+            });
+            
+            const roleOrder = ['owner', 'mentor', 'moderator', 'member'];
             memberListContainer.innerHTML = '';
+            
             roleOrder.forEach(role => {
                 const members = roles[role];
                 if (members.length > 0) {
-                    const roleHeader = `<h3 class="text-xs font-bold uppercase text-gray-400 px-2 mt-4 mb-2">${role} - ${members.length}</h3>`;
+                    const displayRoleName = role === 'mentor' ? 'STAFF' : role;
+                    const roleHeader = `<h3 class="text-xs font-bold uppercase text-gray-400 px-2 mt-4 mb-2">${displayRoleName} - ${members.length}</h3>`;
+                    
                     const membersHTML = members.map(member => {
                         const isTimedOut = member.timeoutUntil && new Date(member.timeoutUntil) > new Date();
+                        const safePic = member.profilePic || (role === 'mentor' || role === 'owner' ? '🛡️' : '👤');
+                        const safeName = member.name || 'Staff Member';
+
                         return `
-                        <div class="member-list-item w-full text-left p-2 rounded transition-colors flex items-center gap-3" data-userid="${member.userId}">
-                            <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xl flex-shrink-0">${member.profilePic}</div>
-                            <span class="truncate font-medium flex-1">${member.name}</span>
+                        <div class="member-list-item w-full text-left p-2 rounded transition-colors flex items-center gap-3 hover:bg-white/10 cursor-pointer" data-userid="${member.userId || member.id}">
+                            <div class="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-xl flex-shrink-0">${safePic}</div>
+                            <span class="truncate font-medium flex-1 ${role === 'owner' || role === 'mentor' ? 'text-indigo-400 font-bold' : 'text-gray-300'}">${safeName}</span>
                             ${isTimedOut ? '<i data-lucide="timer" class="w-4 h-4 text-gray-400" title="In Timeout"></i>' : ''}
                         </div>
-                     `}).join('');
+                    `}).join('');
                     memberListContainer.innerHTML += roleHeader + membersHTML;
                 }
             });
-            lucide.createIcons({ nodes: [memberListContainer] });
+            if(window.lucide) lucide.createIcons({ nodes: [memberListContainer] });
         }
 
         function initializeUserProfilePopup() {
@@ -3976,6 +4004,9 @@
                 <button class="channel-btn w-full text-left p-3 transition-colors flex items-center gap-3" data-room-name="Notices" data-channel-id="notices">
                     <i data-lucide="megaphone" class="w-5 h-5"></i> Notices
                 </button>
+                <button class="channel-btn w-full text-left p-3 transition-colors flex items-center gap-3" data-room-name="Q&A Support" data-channel-id="qna">
+                    <i data-lucide="help-circle" class="w-5 h-5"></i> Q&A Support
+                </button>
             `;
             channels.forEach(channel => {
                 const btn = document.createElement('button');
@@ -3988,7 +4019,7 @@
 
             lucide.createIcons({ nodes: [channelButtonsContainer] });
 
-            // START OF CHANGE: Event delegation for channels
+            // Event delegation for channels
             channelButtonsContainer.addEventListener('click', (e) => {
                 const target = e.target.closest('.channel-btn');
                 if (target) {
@@ -3997,7 +4028,6 @@
                     joinChatRoom(target.dataset.channelId, target.dataset.roomName);
                 }
             });
-            // END OF CHANGE
         }
 
         function initializeEmojiPanel() {
