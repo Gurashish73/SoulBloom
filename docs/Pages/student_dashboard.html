@@ -1341,16 +1341,16 @@
                                         </h3>
                                         
                                         <div class="flex gap-4 mb-4 border-b border-white/10 pb-2">
-                                            <button id="btn-tab-open" class="text-sm font-bold text-blue-400 border-b-2 border-blue-400 pb-1 transition-colors">Available</button>
-                                            <button id="btn-tab-booked" class="text-sm text-gray-400 hover:text-white transition pb-1">My Schedule</button>
+                                            <button id="btn-tab-open" onclick="window.switchApptTab('open')" class="text-sm font-bold text-blue-400 border-b-2 border-blue-400 pb-1 transition-colors">Available</button>
+                                            <button id="btn-tab-booked" onclick="window.switchApptTab('booked')" class="text-sm text-gray-400 hover:text-white transition pb-1">My Schedule</button>
+                                            <button id="btn-tab-live" onclick="window.switchApptTab('live')" class="text-sm text-red-400 hover:text-red-300 transition pb-1 hidden flex items-center gap-1">
+                                                <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> Live!
+                                            </button>
                                         </div>
 
-                                        <div id="open-slots-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
-                                            <p class="text-xs text-gray-500 italic">Loading slots...</p>
-                                        </div>
-                                        <div id="my-sessions-list" class="hidden space-y-2 max-h-48 overflow-y-auto pr-1">
-                                            <p class="text-xs text-gray-500 italic">No sessions yet.</p>
-                                        </div>
+                                        <div id="open-slots-list" class="space-y-2 max-h-48 overflow-y-auto pr-1"></div>
+                                        <div id="my-sessions-list" class="hidden space-y-2 max-h-48 overflow-y-auto pr-1"></div>
+                                        <div id="live-sessions-list" class="hidden space-y-2 max-h-48 overflow-y-auto pr-1"></div>
                                     </div>
 
                                     <div class="glass p-6 rounded-2xl">
@@ -6390,47 +6390,134 @@ Use these when you don't know what to write.
             }
         };
         // --- MISSING FUNCTION: Listen for Student Appointments ---
-        function listenForStudentAppointments(user) {
-            const listContainer = document.getElementById('appointments-list'); // Ensure you have a <ul id="appointments-list"> in your HTML
-            if (!listContainer) return;
+        // --- FIXED: Listen for Student Appointments ---
+        // --- Tab Switching Logic ---
+        window.switchApptTab = (tabName) => {
+            const tabs = ['open', 'booked', 'live'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`btn-tab-${t}`);
+                const list = document.getElementById(`${t === 'open' ? 'open-slots' : t === 'booked' ? 'my-sessions' : 'live-sessions'}-list`);
+                
+                if (!btn || !list) return;
 
-            // Query appointments where 'studentId' matches the current user
+                if (t === tabName) {
+                    list.classList.remove('hidden');
+                    if(t === 'live') {
+                        btn.className = "text-sm text-red-400 border-b-2 border-red-400 font-bold transition flex items-center gap-1 pb-1";
+                    } else {
+                        btn.className = "text-sm text-blue-400 border-b-2 border-blue-400 font-bold transition pb-1";
+                    }
+                } else {
+                    list.classList.add('hidden');
+                    btn.className = `text-sm text-gray-400 hover:text-white transition pb-1 ${t === 'live' && btn.classList.contains('hidden') ? 'hidden' : ''}`;
+                }
+            });
+        };
+
+        // --- FIXED: Listen for Student Appointments ---
+        function listenForStudentAppointments(user) {
+            const listOpen = document.getElementById('open-slots-list');
+            const listBooked = document.getElementById('my-sessions-list');
+            const listLive = document.getElementById('live-sessions-list');
+            const btnLive = document.getElementById('btn-tab-live');
+
+            if (!listOpen) return;
+
+            // Query ALL appointments to see what is open AND what is booked for this student
             const q = query(
                 collection(db, `artifacts/${sanitizedAppId}/public/data/appointments`),
-                where("studentId", "==", user.uid),
-                orderBy("date", "asc") 
+                orderBy("startTime", "asc") 
             );
 
             onSnapshot(q, (snapshot) => {
-                listContainer.innerHTML = ''; // Clear list
-                
-                if (snapshot.empty) {
-                    listContainer.innerHTML = '<li class="text-gray-500 text-sm p-2 text-center">No upcoming sessions.</li>';
-                    return;
-                }
+                let openHTML = '';
+                let bookedHTML = '';
+                let liveHTML = '';
+                let liveCount = 0;
 
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    const dateObj = data.date ? new Date(data.date) : new Date();
+                    const dateObj = data.startTime?.toDate ? data.startTime.toDate() : new Date();
                     
-                    const li = document.createElement('li');
-                    li.className = "p-3 bg-gray-800 rounded-lg border border-white/10 flex justify-between items-center mb-2";
-                    li.innerHTML = `
-                        <div>
-                            <div class="text-white font-bold text-sm">${data.title || 'Mentorship Session'}</div>
-                            <div class="text-indigo-300 text-xs">${dateObj.toLocaleDateString()} at ${dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                        </div>
-                        <a href="${data.meetLink}" target="_blank" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-1 rounded-full transition">
-                            Join
-                        </a>
-                    `;
-                    listContainer.appendChild(li);
+                    // 1 hour buffer so active meetings don't disappear
+                    const oneHourAgo = new Date();
+                    oneHourAgo.setMinutes(oneHourAgo.getMinutes() - 60);
+                    if (dateObj < oneHourAgo) return; 
+
+                    const dateStr = dateObj.toLocaleDateString();
+                    const timeStr = dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+                    // CATEGORY 1: Available Slots
+                    if (data.status === 'open') {
+                        openHTML += `
+                            <div class="p-3 bg-gray-800 rounded-lg border border-white/10 flex justify-between items-center mb-2 hover:border-blue-500/50 transition">
+                                <div>
+                                    <div class="text-white font-bold text-sm">${data.mentorName || 'Mentor'}</div>
+                                    <div class="text-indigo-300 text-xs">${dateStr} at ${timeStr}</div>
+                                </div>
+                                <button onclick="window.bookSession('${doc.id}')" class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-1.5 rounded transition shadow-lg">Book</button>
+                            </div>
+                        `;
+                    } 
+                    // CATEGORY 2: Booked by THIS student
+                    else if (data.status === 'booked' && data.studentId === user.uid) {
+                        
+                        if (data.meetLink) {
+                            // If meetLink exists, the Mentor has started the call -> LIVE TAB
+                            liveCount++;
+                            liveHTML += `
+                                <div class="p-4 bg-red-900/20 rounded-lg border border-red-500/50 flex flex-col gap-3 mb-2 animate-fade-in shadow-xl">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <div class="text-white font-bold text-base">${data.mentorName || 'Mentor'}</div>
+                                            <div class="text-gray-400 text-xs">${timeStr}</div>
+                                        </div>
+                                        <div class="flex items-center gap-1.5 text-red-400 font-bold text-[10px] uppercase tracking-widest bg-red-500/10 px-2 py-1 rounded">
+                                            <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> Live Now
+                                        </div>
+                                    </div>
+                                    <a href="${data.meetLink}" target="_blank" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold text-sm text-center py-2.5 rounded-lg transition shadow-[0_0_15px_rgba(74,222,128,0.4)] animate-pulse flex justify-center items-center gap-2">
+                                        <i data-lucide="video" class="w-4 h-4"></i> Join Video Session
+                                    </a>
+                                </div>
+                            `;
+                        } else {
+                            // Mentor hasn't started it yet -> MY SCHEDULE TAB
+                            bookedHTML += `
+                                <div class="p-3 bg-gray-800 rounded-lg border border-blue-500/30 flex justify-between items-center mb-2">
+                                    <div>
+                                        <div class="text-white font-bold text-sm">${data.mentorName || 'Mentor'}</div>
+                                        <div class="text-blue-300 text-xs">${dateStr} at ${timeStr}</div>
+                                    </div>
+                                    <span class="text-[10px] text-gray-500 italic bg-black/30 px-2 py-1 rounded border border-white/5">Waiting to start...</span>
+                                </div>
+                            `;
+                        }
+                    }
                 });
+
+                // Update DOM
+                listOpen.innerHTML = openHTML || '<p class="text-xs text-gray-500 italic p-2">No available slots.</p>';
+                listBooked.innerHTML = bookedHTML || '<p class="text-xs text-gray-500 italic p-2">No scheduled sessions.</p>';
+                listLive.innerHTML = liveHTML || '<p class="text-xs text-gray-500 italic p-2">No live sessions.</p>';
+
+                // Auto-show/hide the Live Tab
+                if (liveCount > 0) {
+                    btnLive.classList.remove('hidden');
+                    // Automatically switch to the live tab if it just appeared
+                    if (listLive.classList.contains('hidden')) window.switchApptTab('live');
+                } else {
+                    btnLive.classList.add('hidden');
+                    if (!listLive.classList.contains('hidden')) window.switchApptTab('booked');
+                }
+
+                if(window.lucide) window.lucide.createIcons();
+                
             }, (error) => {
                 console.error("Error loading appointments:", error);
-                // If index error, show link to create index in console
             });
         }
+        
         // --- STUDENT CHAT LOGIC ---
         let activeChatId = null;
         let chatListener = null;
@@ -6503,10 +6590,28 @@ Use these when you don't know what to write.
                     // Create Message Bubble
                     const bubble = document.createElement('div');
                     bubble.className = `flex w-full ${isMe ? 'justify-end' : 'justify-start'} mb-3`;
+
+                    // NEW: Determine inner content based on message type
+                    let innerContent = `<p>${msg.text || ''}</p>`;
+                    
+                    if (msg.type === 'video_call') {
+                        innerContent = `
+                            <div class="flex flex-col gap-2 min-w-[180px]">
+                                <div class="flex items-center gap-2 font-bold ${isMe ? 'text-green-300' : 'text-green-400'}">
+                                    <i data-lucide="video" class="w-4 h-4"></i> Video Session
+                                </div>
+                                <p class="text-[10px] opacity-90">${msg.text}</p>
+                                <a href="${msg.callUrl}" target="_blank" class="block w-full text-center mt-1 py-2 rounded bg-green-600 hover:bg-green-500 text-white font-bold transition-colors shadow-lg">
+                                    Join Meeting Now
+                                </a>
+                            </div>
+                        `;
+                    }
+
                     bubble.innerHTML = `
                         <div class="max-w-[85%] flex flex-col ${isMe ? 'items-end' : 'items-start'}">
-                            <div class="px-3 py-2 text-xs rounded-xl ${isMe ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-gray-700 text-gray-200 rounded-bl-none'}">
-                                <p>${msg.text}</p>
+                            <div class="px-3 py-2 text-xs rounded-xl ${isMe ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-gray-700 text-gray-200 rounded-bl-none'} shadow-md">
+                                ${innerContent}
                             </div>
                             <span class="text-[9px] text-gray-500 mt-1 mx-1">
                                 ${msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '...'}
@@ -6514,6 +6619,7 @@ Use these when you don't know what to write.
                         </div>`;
                     container.appendChild(bubble);
                 });
+                if(window.lucide) lucide.createIcons({ nodes: [container] });
                 scrollToBottom();
             });
         }

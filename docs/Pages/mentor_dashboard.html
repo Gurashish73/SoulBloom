@@ -277,9 +277,14 @@
                     <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Live Connection
                 </span>
             </div>
-            <button onclick="toggleChat(false)" class="text-gray-400 hover:text-white">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-            </button>
+            <div class="flex items-center gap-3">
+                <button onclick="window.startVideoCall()" class="flex items-center gap-2 bg-green-600/20 border border-green-500 text-green-300 hover:bg-green-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition">
+                    <i data-lucide="video" class="w-4 h-4"></i> Start Video
+                </button>
+                <button onclick="toggleChat(false)" class="text-gray-400 hover:text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
+            </div>
         </div>
 
         <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-900/50">
@@ -818,6 +823,13 @@
                 
                 appts.forEach(a => {
                     const date = a.startTime?.toDate ? a.startTime.toDate() : new Date();
+                    
+                    // --- FIX 1: Keep visible for 1 hour AFTER the start time ---
+                    const oneHourAgo = new Date();
+                    oneHourAgo.setMinutes(oneHourAgo.getMinutes() - 60);
+                    if (date < oneHourAgo) return; // Hide it only if it's more than an hour old!
+                    // -----------------------------------------------------------
+
                     const isPriority = a.status === 'booked' && (a.mentorName || '').includes('Priority');
                     const isBooked = a.status === 'booked';
                     
@@ -825,8 +837,10 @@
                     const borderClass = isPriority ? 'border-l-4 border-red-500' : (isBooked ? 'border-l-4 border-blue-500' : 'border-l-4 border-gray-500');
                     const statusText = isPriority ? 'Priority Session' : (isBooked ? 'Booked' : 'Open Slot');
                     
-                    // --- Feature: Show Student ID if booked ---
+                    // --- Feature: Show Student ID & Video Button if booked ---
                     let studentInfoHTML = '';
+                    let actionButtonsHTML = ''; 
+
                     if (isBooked && a.studentId) {
                         studentInfoHTML = `
                             <div class="mt-1 flex items-center gap-1.5 bg-blue-900/20 px-2 py-1 rounded border border-blue-500/20 w-fit">
@@ -836,32 +850,51 @@
                                 </span>
                             </div>
                         `;
+
+                        // Check if it's time to start (within 15 mins before, or up to 60 mins after)
+                        const now = new Date();
+                        const diffMinutes = (date - now) / 60000;
+                        const isTime = diffMinutes <= 15 && diffMinutes >= -60;
+
+                        // Add the Start Video button
+                        actionButtonsHTML = `
+                            <div class="w-full mt-3 pt-2 border-t border-white/10">
+                                <button onclick="window.startApptVideo('${a.id}', '${a.studentId}')" 
+                                    class="w-full flex justify-center items-center gap-2 text-xs font-bold px-3 py-2 rounded-lg transition-all ${isTime ? 'bg-green-600 hover:bg-green-500 text-white shadow-[0_0_10px_rgba(22,163,74,0.4)] animate-pulse' : 'bg-gray-700 hover:bg-green-600 text-gray-300 hover:text-white'}">
+                                    <i data-lucide="video" class="w-4 h-4"></i> Start Video Session
+                                </button>
+                            </div>
+                        `;
                     } else if (isBooked) {
                         studentInfoHTML = `<div class="mt-1 text-xs text-gray-500 italic">Booked (Anonymous)</div>`;
                     }
 
                     const div = document.createElement('div');
-                    div.className = `p-3 bg-white/5 rounded ${borderClass} flex justify-between items-center group relative mb-2`;
+                    // Changed to flex-col to allow the button to sit at the bottom
+                    div.className = `p-3 bg-white/5 rounded ${borderClass} flex flex-col group relative mb-2`; 
                     
                     div.innerHTML = `
-                        <div>
-                            <div class="text-sm font-bold text-gray-200">
-                                ${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        <div class="flex justify-between items-start w-full">
+                            <div>
+                                <div class="text-sm font-bold text-gray-200">
+                                    ${date.toLocaleDateString()} ${date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                </div>
+                                <div class="text-xs text-gray-400">${statusText}</div>
+                                ${studentInfoHTML}
                             </div>
-                            <div class="text-xs text-gray-400">${statusText}</div>
-                            ${studentInfoHTML}
-                        </div>
-                        
-                        <div class="flex items-center gap-2">
-                            <div class="flex gap-1 ml-2">
-                                <button onclick="window.rescheduleAppt('${a.id}')" title="Reschedule" class="p-1 text-gray-500 hover:text-blue-400 transition">
-                                    <i data-lucide="clock" class="w-4 h-4"></i>
-                                </button>
-                                <button onclick="window.cancelAppt('${a.id}')" title="Cancel" class="p-1 text-gray-500 hover:text-red-400 transition">
-                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                </button>
+                            
+                            <div class="flex items-center gap-2">
+                                <div class="flex gap-1 ml-2">
+                                    <button onclick="window.rescheduleAppt('${a.id}')" title="Reschedule" class="p-1 text-gray-500 hover:text-blue-400 transition">
+                                        <i data-lucide="clock" class="w-4 h-4"></i>
+                                    </button>
+                                    <button onclick="window.cancelAppt('${a.id}')" title="Cancel" class="p-1 text-gray-500 hover:text-red-400 transition">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
+                        ${actionButtonsHTML}
                     `;
                     list.appendChild(div);
                 });
@@ -1352,21 +1385,69 @@
                     // Render Message Bubble
                     const bubble = document.createElement('div');
                     bubble.className = `flex ${isMe ? 'justify-end' : 'justify-start'}`;
+                    
+                    // NEW: Determine what goes inside the bubble based on type
+                    let innerContent = `<p>${msg.text || ''}</p>`;
+                    
+                    if (msg.type === 'video_call') {
+                        innerContent = `
+                            <div class="flex flex-col gap-2">
+                                <div class="flex items-center gap-2 font-bold ${isMe ? 'text-green-300' : 'text-green-400'}">
+                                    <i data-lucide="video" class="w-4 h-4"></i> Video Session
+                                </div>
+                                <p class="text-xs opacity-90">${msg.text}</p>
+                                <a href="${msg.callUrl}" target="_blank" class="block w-full text-center mt-1 py-2 rounded bg-green-600 hover:bg-green-500 text-white font-bold transition-colors">
+                                    Join Meeting
+                                </a>
+                            </div>
+                        `;
+                    }
+
                     bubble.innerHTML = `
                         <div class="max-w-[80%] rounded-lg p-3 text-sm ${isMe ? 'bg-indigo-600 text-white rounded-br-none' : 'bg-gray-700 text-gray-200 rounded-bl-none'}">
-                            <p>${msg.text}</p>
-                            <div class="text-[10px] opacity-50 text-right mt-1">
+                            ${innerContent}
+                            <div class="text-[10px] opacity-50 text-right mt-2">
                                 ${msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : 'Sending...'}
                             </div>
                         </div>
                     `;
                     chatContainer.appendChild(bubble);
-                });
+                    });
 
                 // Auto-scroll to bottom
                 chatContainer.scrollTop = chatContainer.scrollHeight;
             });
         }
+        // --- 3.5 START VIDEO SESSION ---
+        window.startVideoCall = async () => {
+            if (!currentChatId) return;
+
+            // Generate a secure, unique room name
+            const roomName = `SoulBloom_${currentChatId}_${Math.floor(Math.random() * 10000)}`;
+            const meetUrl = `https://meet.jit.si/${roomName}`;
+
+            try {
+                const messagesRef = collection(db, `artifacts/${sanitizedAppId}/public/data/chats/${currentChatId}/messages`);
+                
+                // Send a special "video_call" message
+                await addDoc(messagesRef, {
+                    type: 'video_call',
+                    text: `Mentor is inviting you to a private video session.`,
+                    callUrl: meetUrl,
+                    senderId: window.currentMentor.id,
+                    senderName: window.currentMentor.name,
+                    timestamp: serverTimestamp()
+                });
+
+                // Open the Jitsi call in a new tab for the Mentor
+                window.open(meetUrl, '_blank');
+                
+                window.showToast("Video session started!", "success");
+            } catch (e) {
+                console.error("Call Error:", e);
+                window.showToast("Failed to start call", "error");
+            }
+        };
 
         // 4. Send a Message
         window.sendMessage = async () => {
@@ -1995,6 +2076,47 @@
                 }
             }
         }
+        // --- START VIDEO FROM APPOINTMENT ---
+        window.startApptVideo = async (apptId, studentId) => {
+            if (!studentId) return window.showToast("Student ID missing", "error");
+
+            const roomName = `SoulBloom_Appt_${apptId}_${Math.floor(Math.random() * 1000)}`;
+            const meetUrl = `https://meet.jit.si/${roomName}`;
+
+            try {
+                // 1. Update the appointment document so it shows on the student's schedule tab
+                await updateDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/appointments/${apptId}`), {
+                    meetLink: meetUrl
+                });
+
+                // 2. Send an instant chat message to the student
+                const chatId = `${window.currentMentor.id}_${studentId}`;
+                await addDoc(collection(db, `artifacts/${sanitizedAppId}/public/data/chats/${chatId}/messages`), {
+                    type: 'video_call',
+                    text: `Your scheduled session is starting now.`,
+                    callUrl: meetUrl,
+                    senderId: window.currentMentor.id,
+                    senderName: window.currentMentor.name,
+                    timestamp: serverTimestamp()
+                });
+
+                // Update the chat summary so the red dot appears for the student
+                await setDoc(doc(db, `artifacts/${sanitizedAppId}/public/data/chats/${chatId}`), {
+                    lastMessage: "Video session started",
+                    lastUpdated: serverTimestamp(),
+                    participants: [window.currentMentor.id, studentId],
+                    mentorName: window.currentMentor.name
+                }, { merge: true });
+
+                // 3. Open the call for the mentor
+                window.open(meetUrl, '_blank');
+                window.showToast("Session started & student notified!", "success");
+
+            } catch (e) {
+                console.error("Failed to start session:", e);
+                window.showToast("Error starting session", "error");
+            }
+        };
     </script>
     <div id="mod-menu" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[200]">
         <div class="glass max-w-xs w-full p-6 rounded-2xl border border-white/10 shadow-2xl">
